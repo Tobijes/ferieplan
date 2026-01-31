@@ -30,9 +30,9 @@ Danish vacation day planner — client-side React app with no backend.
 ```
 src/
 ├── components/
-│   ├── ui/                # shadcn components (accordion, button, card, input, label, scroll-area, select, switch, tooltip)
+│   ├── ui/                # shadcn components (accordion, alert-dialog, button, card, input, label, scroll-area, select, switch, tooltip)
 │   ├── App.tsx            # Root: VacationProvider + TooltipProvider + 2-column layout
-│   ├── ConfigPane.tsx     # Left pane: settings, year range dropdown, holiday toggles (accordion by year)
+│   ├── ConfigPane.tsx     # Left pane: settings, holiday toggles (accordion by year), data management (reset)
 │   ├── CalendarView.tsx   # Right pane: scrollable grid of months based on yearRange
 │   ├── CalendarMonth.tsx  # Single month: header + 7-col day grid (Mon–Sun)
 │   └── CalendarDay.tsx    # Day cell: colored circle + tooltip on hover
@@ -93,8 +93,9 @@ interface VacationState {
 - Year range selector: "Indeværende år" (12 months) or "Indeværende + næste år" (24 months)
 - State survives page refresh via localStorage
 - `holidayNames` map is held in context (non-persisted) for tooltip lookups
-- `highlightedDate` in context drives the calendar highlight ring on holiday hover
-- Context functions (`toggleDate`, `toggleHoliday`, `initHolidays`) are wrapped in `useCallback` to avoid infinite re-render loops
+- Holiday highlight ring uses a DOM-based approach (not React state) for performance: `setHighlightedDate` toggles a `data-highlighted` attribute on `[data-date]` buttons via `calendarRef`, styled with Tailwind `data-[highlighted=true]:ring-*` selectors. This avoids re-rendering all CalendarDay components on hover.
+- "Ryd alting" button in the Data card resets state in-place via `resetState()` (no page reload). It clears the `holidayNamesRef` guard so holidays re-initialize on the next render.
+- Context functions (`toggleDate`, `toggleHoliday`, `initHolidays`, `resetState`) are wrapped in `useCallback` to avoid infinite re-render loops
 
 ## Locale
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useVacation } from '@/context/VacationContext';
 import { useHolidays } from '@/hooks/useHolidays';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -19,6 +20,17 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -35,7 +47,7 @@ const MONTH_NAMES = [
 ];
 
 export function ConfigPane() {
-  const { state, setState, toggleHoliday, initHolidays, setHighlightedDate } = useVacation();
+  const { state, setState, toggleHoliday, initHolidays, resetState, setHighlightedDate } = useVacation();
   const holidays = useHolidays();
 
   useEffect(() => {
@@ -170,6 +182,41 @@ export function ConfigPane() {
               </AccordionItem>
             ))}
           </Accordion>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Data</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full text-muted-foreground hover:bg-red-100 hover:text-red-700"
+              >
+                Ryd alting
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Er du sikker?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Dette sletter alle dine indstillinger, valgte feriedage og gemte data. Handlingen kan ikke fortrydes.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuller</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={resetState}
+                >
+                  Ryd alting
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
     </div>

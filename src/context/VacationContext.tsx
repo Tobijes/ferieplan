@@ -18,9 +18,10 @@ interface VacationContextType {
   toggleDate: (dateStr: string) => void;
   toggleHoliday: (dateStr: string) => void;
   initHolidays: (dates: string[], names: Record<string, string>) => void;
+  resetState: () => void;
   holidayNames: Record<string, string>;
-  highlightedDate: string | null;
   setHighlightedDate: (date: string | null) => void;
+  calendarRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const VacationCtx = createContext<VacationContextType | null>(null);
@@ -31,7 +32,18 @@ export function VacationProvider({ children }: { children: ReactNode }) {
     defaultState
   );
   const [holidayNames, setHolidayNames] = useState<Record<string, string>>({});
-  const [highlightedDate, setHighlightedDate] = useState<string | null>(null);
+  const calendarRef = useRef<HTMLDivElement | null>(null);
+
+  const setHighlightedDate = useCallback((date: string | null) => {
+    const container = calendarRef.current;
+    if (!container) return;
+    container.querySelectorAll('[data-highlighted="true"]').forEach((el) => {
+      el.removeAttribute('data-highlighted');
+    });
+    if (date) {
+      container.querySelector(`[data-date="${date}"]`)?.setAttribute('data-highlighted', 'true');
+    }
+  }, []);
 
   const toggleDate = useCallback((dateStr: string) => {
     setState((prev) => {
@@ -70,8 +82,15 @@ export function VacationProvider({ children }: { children: ReactNode }) {
     });
   }, [setState]);
 
+  const resetState = useCallback(() => {
+    holidayNamesRef.current = false;
+    setState({ ...defaultState, startDate: toISODate(new Date()) });
+  }, [setState]);
+
+  const value = useMemo(() => ({ state, setState, toggleDate, toggleHoliday, initHolidays, resetState, holidayNames, setHighlightedDate, calendarRef }), [state, setState, toggleDate, toggleHoliday, initHolidays, resetState, holidayNames, setHighlightedDate]);
+
   return (
-    <VacationCtx.Provider value={useMemo(() => ({ state, setState, toggleDate, toggleHoliday, initHolidays, holidayNames, highlightedDate, setHighlightedDate }), [state, setState, toggleDate, toggleHoliday, initHolidays, holidayNames, highlightedDate])}>
+    <VacationCtx.Provider value={value}>
       {children}
     </VacationCtx.Provider>
   );

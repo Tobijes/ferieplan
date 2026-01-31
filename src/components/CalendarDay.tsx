@@ -45,9 +45,8 @@ function useTooltipText(dateStr: string, status: string): string {
 }
 
 export function CalendarDay({ date }: CalendarDayProps) {
-  const { state, toggleDate, highlightedDate } = useVacation();
+  const { state, toggleDate } = useVacation();
   const dateStr = toISODate(date);
-  const isHighlighted = highlightedDate === dateStr;
 
   const status = getDayStatus(
     dateStr,
@@ -70,13 +69,13 @@ export function CalendarDay({ date }: CalendarDayProps) {
     <Tooltip>
       <TooltipTrigger asChild>
         <button
+          data-date={dateStr}
           onClick={handleClick}
           disabled={isHoliday}
           className={cn(
-            'w-8 h-8 rounded-full text-sm flex items-center justify-center transition-colors',
+            'w-8 h-8 rounded-full text-sm flex items-center justify-center transition-colors data-[highlighted=true]:ring-2 data-[highlighted=true]:ring-blue-500/60',
             statusClasses[status],
             isHoliday && 'cursor-default',
-            isHighlighted && 'ring-2 ring-blue-500/60'
           )}
         >
           {date.getDate()}
