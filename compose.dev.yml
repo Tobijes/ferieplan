@@ -1,0 +1,8 @@
+services:
+  app:
+    image: ferieplan-app:local
+    build:
+      context: .              
+      dockerfile: Dockerfile
+    ports:
+        - "3000:80"

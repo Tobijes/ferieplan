@@ -1,0 +1,12 @@
+services:
+  app:
+    image: ghcr.io/tobijes/ferieplan--app:latest
+    pull_policy: always
+    restart: always
+    healthcheck:
+      # Use curl to check the local index page; -f fails silently on server errors
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
