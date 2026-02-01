@@ -73,7 +73,8 @@ export function computeAllStatuses(
   startDate: string,
   initialDays: number,
   extraDaysMonth: number,
-  extraDaysCount: number
+  extraDaysCount: number,
+  advanceDays: number
 ): Record<string, DayStatus> {
   const result: Record<string, DayStatus> = {};
   const selectedSet = new Set(selectedDates);
@@ -100,7 +101,7 @@ export function computeAllStatuses(
       const earned = calculateEarnedDays(startDate, dateStr);
       const extra = calculateExtraDays(startDate, dateStr, extraDaysMonth, extraDaysCount);
       const balance = initialDays + earned + extra - usedCount;
-      result[dateStr] = balance >= 0 ? 'selected-ok' : 'selected-warning';
+      result[dateStr] = balance >= 0 ? 'selected-ok' : balance >= -advanceDays ? 'selected-warning' : 'selected-overdrawn';
       continue;
     }
 
@@ -146,6 +147,8 @@ export function getDayStatus(
     );
     return balance >= 0 ? 'selected-ok' : 'selected-warning';
   }
+
+  // Note: getDayStatus doesn't have advanceDays context, kept for backwards compat
 
   if (isWeekend(date)) {
     return 'weekend';

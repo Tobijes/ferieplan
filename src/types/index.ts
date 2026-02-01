@@ -10,6 +10,7 @@ export interface DefaultData {
     defaultMonth: number;
     defaultCount: number;
   };
+  advanceDays: number;
 }
 
 export type YearRange = 'current' | 'current+next';
@@ -23,6 +24,7 @@ export interface VacationState {
   selectedDates: string[];
   enabledHolidays: Record<string, boolean>;
   holidays: Holiday[];
+  advanceDays: number;
 }
 
 export type DayStatus =
@@ -30,4 +32,5 @@ export type DayStatus =
   | 'weekend'
   | 'holiday'
   | 'selected-ok'
-  | 'selected-warning';
+  | 'selected-warning'
+  | 'selected-overdrawn';

@@ -4,6 +4,7 @@ import type { DefaultData } from '@/types';
 const emptyData: DefaultData = {
   holidays: [],
   extraHoliday: { defaultMonth: 5, defaultCount: 5 },
+  advanceDays: 0,
 };
 
 export function useDefaults() {

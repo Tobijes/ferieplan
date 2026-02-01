@@ -22,6 +22,7 @@ const statusClasses: Record<string, string> = {
   'holiday': 'bg-blue-200 text-blue-800',
   'selected-ok': 'bg-green-300 text-green-900',
   'selected-warning': 'bg-yellow-300 text-yellow-900',
+  'selected-overdrawn': 'bg-red-300 text-red-900',
   'normal': 'hover:bg-gray-100',
 };
 
@@ -38,6 +39,8 @@ function TooltipBody({ dateStr, status }: { dateStr: string; status: DayStatus }
     case 'selected-ok':
       return <>{dateLabel}{'\n'}Feriedag{'\n'}Saldo: {bal.toFixed(1)}</>;
     case 'selected-warning':
+      return <>{dateLabel}{'\n'}Feriedag – forskudsferie{'\n'}Saldo: {bal.toFixed(1)}</>;
+    case 'selected-overdrawn':
       return <>{dateLabel}{'\n'}Feriedag – ikke nok dage!{'\n'}Saldo: {bal.toFixed(1)}</>;
     default:
       return <>{dateLabel}{'\n'}Saldo: {bal.toFixed(1)}</>;

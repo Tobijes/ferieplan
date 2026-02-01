@@ -1,10 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { useVacation } from '@/context/VacationContext';
 import { useDefaults } from '@/hooks/useHolidays';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
+function DeferredNumberInput({ value, onCommit, ...props }: Omit<ComponentProps<typeof Input>, 'onChange' | 'onBlur' | 'value'> & { value: number; onCommit: (v: number) => void }) {
+  const [local, setLocal] = useState(String(value));
+  useEffect(() => { setLocal(String(value)); }, [value]);
+  return (
+    <Input
+      {...props}
+      type="number"
+      value={local}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={() => onCommit(Math.min(Number(local), Number(props.max ?? Infinity)))}
+      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+    />
+  );
+}
 import {
   Select,
   SelectContent,
@@ -57,7 +72,7 @@ export function ConfigPane() {
 
   useEffect(() => {
     if (defaults.holidays.length > 0) {
-      initDefaults(defaults.holidays, defaults.extraHoliday.defaultMonth, defaults.extraHoliday.defaultCount);
+      initDefaults(defaults.holidays, defaults.extraHoliday.defaultMonth, defaults.extraHoliday.defaultCount, defaults.advanceDays);
     }
   }, [defaults, initDefaults, state.holidays.length]);
 
@@ -109,15 +124,15 @@ export function ConfigPane() {
           </div>
           <div className="space-y-1">
             <Label htmlFor="initialDays">Feriedage ved start</Label>
-            <Input
+            <DeferredNumberInput
               id="initialDays"
-              type="number"
               min={0}
+              max={99}
               value={state.initialVacationDays}
-              onChange={(e) =>
+              onCommit={(v) =>
                 setState((prev) => ({
                   ...prev,
-                  initialVacationDays: Number(e.target.value),
+                  initialVacationDays: v,
                 }))
               }
             />
@@ -125,13 +140,13 @@ export function ConfigPane() {
           <div className="space-y-1">
             <Label>Ekstra feriedage</Label>
             <div className="flex gap-2">
-              <Input
-                type="number"
+              <DeferredNumberInput
                 min={0}
+                max={99}
                 className="w-20"
                 value={state.extraDaysCount}
-                onChange={(e) =>
-                  setState((prev) => ({ ...prev, extraDaysCount: Number(e.target.value) }))
+                onCommit={(v) =>
+                  setState((prev) => ({ ...prev, extraDaysCount: v }))
                 }
               />
               <Select
@@ -152,6 +167,21 @@ export function ConfigPane() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="advanceDays">Forskudsferie</Label>
+            <DeferredNumberInput
+              id="advanceDays"
+              min={0}
+              max={99}
+              value={state.advanceDays}
+              onCommit={(v) =>
+                setState((prev) => ({
+                  ...prev,
+                  advanceDays: v,
+                }))
+              }
+            />
           </div>
           <div className="space-y-1">
             <Label>Visning</Label>
