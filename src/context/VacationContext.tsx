@@ -15,6 +15,7 @@ const defaultState: VacationState = {
   enabledHolidays: {},
   holidays: [],
   advanceDays: 0,
+  maxTransferDays: 5,
 };
 
 interface VacationContextType {
@@ -22,7 +23,7 @@ interface VacationContextType {
   setState: (value: VacationState | ((prev: VacationState) => VacationState)) => void;
   toggleDate: (dateStr: string) => void;
   toggleHoliday: (dateStr: string) => void;
-  initDefaults: (holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number) => void;
+  initDefaults: (holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number) => void;
   addHoliday: (date: string, name: string) => void;
   resetState: () => void;
   holidayNames: Record<string, string>;
@@ -78,14 +79,14 @@ export function VacationProvider({ children }: { children: ReactNode }) {
     }));
   }, [setState]);
 
-  const initDefaults = useCallback((holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number) => {
+  const initDefaults = useCallback((holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number) => {
     setState((prev) => {
       if (prev.holidays.length > 0) return prev;
       const enabled: Record<string, boolean> = {};
       for (const h of holidays) {
         enabled[h.date] = h.enabled;
       }
-      return { ...prev, holidays, enabledHolidays: enabled, extraDaysMonth: extraMonth, extraDaysCount: extraCount, advanceDays };
+      return { ...prev, holidays, enabledHolidays: enabled, extraDaysMonth: extraMonth, extraDaysCount: extraCount, advanceDays, maxTransferDays };
     });
   }, [setState]);
 
@@ -118,9 +119,10 @@ export function VacationProvider({ children }: { children: ReactNode }) {
       state.initialVacationDays,
       state.extraDaysMonth,
       state.extraDaysCount,
-      state.advanceDays
+      state.advanceDays,
+      state.maxTransferDays
     );
-  }, [state.yearRange, state.selectedDates, state.enabledHolidays, state.startDate, state.initialVacationDays, state.extraDaysMonth, state.extraDaysCount, state.advanceDays]);
+  }, [state.yearRange, state.selectedDates, state.enabledHolidays, state.startDate, state.initialVacationDays, state.extraDaysMonth, state.extraDaysCount, state.advanceDays, state.maxTransferDays]);
 
   const value = useMemo(() => ({ state, setState, toggleDate, toggleHoliday, initDefaults, addHoliday, resetState, holidayNames, dayStatuses, setHighlightedDate, calendarRef }), [state, setState, toggleDate, toggleHoliday, initDefaults, addHoliday, resetState, holidayNames, dayStatuses, setHighlightedDate]);
 

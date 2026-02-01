@@ -5,6 +5,7 @@ const emptyData: DefaultData = {
   holidays: [],
   extraHoliday: { defaultMonth: 5, defaultCount: 5 },
   advanceDays: 0,
+  maxTransferDays: 5,
 };
 
 export function useDefaults() {

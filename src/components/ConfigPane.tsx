@@ -8,14 +8,25 @@ import { Label } from '@/components/ui/label';
 
 function DeferredNumberInput({ value, onCommit, ...props }: Omit<ComponentProps<typeof Input>, 'onChange' | 'onBlur' | 'value'> & { value: number; onCommit: (v: number) => void }) {
   const [local, setLocal] = useState(String(value));
+  const pointerDown = useRef(false);
   useEffect(() => { setLocal(String(value)); }, [value]);
+  const clamp = (v: number) => Math.max(Number(props.min ?? -Infinity), Math.min(v, Number(props.max ?? Infinity)));
   return (
     <Input
       {...props}
       type="number"
       value={local}
-      onChange={(e) => setLocal(e.target.value)}
-      onBlur={() => onCommit(Math.min(Number(local), Number(props.max ?? Infinity)))}
+      onPointerDown={() => { pointerDown.current = true; }}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setLocal(raw);
+        // Spinner buttons trigger via pointer — commit immediately
+        if (pointerDown.current) {
+          pointerDown.current = false;
+          onCommit(clamp(Number(raw)));
+        }
+      }}
+      onBlur={() => onCommit(clamp(Number(local)))}
       onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
     />
   );
@@ -72,7 +83,7 @@ export function ConfigPane() {
 
   useEffect(() => {
     if (defaults.holidays.length > 0) {
-      initDefaults(defaults.holidays, defaults.extraHoliday.defaultMonth, defaults.extraHoliday.defaultCount, defaults.advanceDays);
+      initDefaults(defaults.holidays, defaults.extraHoliday.defaultMonth, defaults.extraHoliday.defaultCount, defaults.advanceDays, defaults.maxTransferDays);
     }
   }, [defaults, initDefaults, state.holidays.length]);
 
@@ -179,6 +190,21 @@ export function ConfigPane() {
                 setState((prev) => ({
                   ...prev,
                   advanceDays: v,
+                }))
+              }
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="maxTransferDays">Overførbare feriedage</Label>
+            <DeferredNumberInput
+              id="maxTransferDays"
+              min={0}
+              max={99}
+              value={state.maxTransferDays}
+              onCommit={(v) =>
+                setState((prev) => ({
+                  ...prev,
+                  maxTransferDays: v,
                 }))
               }
             />

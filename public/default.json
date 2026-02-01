@@ -1,5 +1,6 @@
 {
   "advanceDays": 0,
+  "maxTransferDays": 5,
   "extraHoliday": {
     "defaultMonth": 5,
     "defaultCount": 5

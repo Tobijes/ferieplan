@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react';
 import { useVacation } from '@/context/VacationContext';
-import { getBalance } from '@/lib/vacationCalculations';
+import { getFerieaarBalances } from '@/lib/vacationCalculations';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -26,24 +26,39 @@ const statusClasses: Record<string, string> = {
   'normal': 'hover:bg-gray-100',
 };
 
+function BalanceLines({ dateStr }: { dateStr: string }) {
+  const { state } = useVacation();
+  const balances = getFerieaarBalances(
+    state.startDate, state.initialVacationDays, state.extraDaysMonth,
+    state.extraDaysCount, state.selectedDates, state.enabledHolidays, dateStr, state.maxTransferDays
+  );
+  const visible = balances.filter((b) => !b.expired && (b.earned + b.extra + b.transferred) > 0);
+  return (
+    <>
+      {visible.map((b) => (
+        <span key={b.year}>{'\n'}Ferieåret {b.year}: {b.balance.toFixed(1)}</span>
+      ))}
+    </>
+  );
+}
+
 function TooltipBody({ dateStr, status }: { dateStr: string; status: DayStatus }) {
-  const { state, holidayNames } = useVacation();
+  const { holidayNames } = useVacation();
   const dateLabel = format(new Date(dateStr + 'T00:00:00'), 'EEEE d. MMMM yyyy', { locale: da });
-  const bal = getBalance(state.startDate, state.initialVacationDays, state.extraDaysMonth, state.extraDaysCount, state.selectedDates, state.enabledHolidays, dateStr);
 
   switch (status) {
     case 'holiday':
-      return <>{dateLabel}{'\n'}{holidayNames[dateStr] ?? 'Helligdag'}{'\n'}Saldo: {bal.toFixed(1)}</>;
+      return <>{dateLabel}{'\n'}{holidayNames[dateStr] ?? 'Helligdag'}<BalanceLines dateStr={dateStr} /></>;
     case 'weekend':
-      return <>{dateLabel}{'\n'}Weekend{'\n'}Saldo: {bal.toFixed(1)}</>;
+      return <>{dateLabel}{'\n'}Weekend<BalanceLines dateStr={dateStr} /></>;
     case 'selected-ok':
-      return <>{dateLabel}{'\n'}Feriedag{'\n'}Saldo: {bal.toFixed(1)}</>;
+      return <>{dateLabel}{'\n'}Feriedag<BalanceLines dateStr={dateStr} /></>;
     case 'selected-warning':
-      return <>{dateLabel}{'\n'}Feriedag – forskudsferie{'\n'}Saldo: {bal.toFixed(1)}</>;
+      return <>{dateLabel}{'\n'}Feriedag – forskudsferie<BalanceLines dateStr={dateStr} /></>;
     case 'selected-overdrawn':
-      return <>{dateLabel}{'\n'}Feriedag – ikke nok dage!{'\n'}Saldo: {bal.toFixed(1)}</>;
+      return <>{dateLabel}{'\n'}Feriedag – ikke nok dage!<BalanceLines dateStr={dateStr} /></>;
     default:
-      return <>{dateLabel}{'\n'}Saldo: {bal.toFixed(1)}</>;
+      return <>{dateLabel}<BalanceLines dateStr={dateStr} /></>;
   }
 }
 
