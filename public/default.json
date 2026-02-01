@@ -9,23 +9,29 @@
     { "date": "2026-04-03", "name": "Langfredag", "enabled": true },
     { "date": "2026-04-05", "name": "Påskedag", "enabled": true },
     { "date": "2026-04-06", "name": "2. påskedag", "enabled": true },
+    { "date": "2026-05-01", "name": "1. Maj", "enabled": false },
     { "date": "2026-05-14", "name": "Kristi himmelfartsdag", "enabled": true },
     { "date": "2026-05-24", "name": "Pinsedag", "enabled": true },
     { "date": "2026-05-25", "name": "2. pinsedag", "enabled": true },
     { "date": "2026-06-05", "name": "Grundlovsdag", "enabled": true },
+    { "date": "2026-12-24", "name": "Juleaftensdag", "enabled": false },
     { "date": "2026-12-25", "name": "1. juledag", "enabled": true },
     { "date": "2026-12-26", "name": "2. juledag", "enabled": true },
+    { "date": "2026-12-31", "name": "Nytårsaftensdag", "enabled": false },
 
     { "date": "2027-01-01", "name": "Nytårsdag", "enabled": true },
     { "date": "2027-03-25", "name": "Skærtorsdag", "enabled": true },
     { "date": "2027-03-26", "name": "Langfredag", "enabled": true },
     { "date": "2027-03-28", "name": "Påskedag", "enabled": true },
     { "date": "2027-03-29", "name": "2. påskedag", "enabled": true },
+    { "date": "2027-05-01", "name": "1. Maj", "enabled": false },
     { "date": "2027-05-06", "name": "Kristi himmelfartsdag", "enabled": true },
     { "date": "2027-05-16", "name": "Pinsedag", "enabled": true },
     { "date": "2027-05-17", "name": "2. pinsedag", "enabled": true },
     { "date": "2027-06-05", "name": "Grundlovsdag", "enabled": true },
+    { "date": "2027-12-24", "name": "Juleaftensdag", "enabled": false },
     { "date": "2027-12-25", "name": "1. juledag", "enabled": true },
-    { "date": "2027-12-26", "name": "2. juledag", "enabled": true }
+    { "date": "2027-12-26", "name": "2. juledag", "enabled": true },
+    { "date": "2027-12-31", "name": "Nytårsaftensdag", "enabled": false }
   ]
 }
