@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useVacation } from '@/context/VacationContext';
 import { useDefaults } from '@/hooks/useHolidays';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +43,7 @@ import {
 import { format } from 'date-fns';
 import { da } from 'date-fns/locale';
 import { getVisibleYears } from '@/lib/dateUtils';
-import type { YearRange } from '@/types';
+import type { VacationState, YearRange } from '@/types';
 
 
 const MONTH_NAMES = [
@@ -59,7 +59,7 @@ export function ConfigPane() {
     if (defaults.holidays.length > 0) {
       initDefaults(defaults.holidays, defaults.extraHoliday.defaultMonth, defaults.extraHoliday.defaultCount);
     }
-  }, [defaults, initDefaults]);
+  }, [defaults, initDefaults, state.holidays.length]);
 
   const visibleYears = useMemo(() => getVisibleYears(state.yearRange), [state.yearRange]);
 
@@ -77,6 +77,9 @@ export function ConfigPane() {
   const [newHolidayDate, setNewHolidayDate] = useState('');
   const [newHolidayName, setNewHolidayName] = useState('');
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [pendingImport, setPendingImport] = useState<VacationState | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleAddHoliday() {
     if (!newHolidayDate || !newHolidayName.trim()) return;
@@ -243,12 +246,77 @@ export function ConfigPane() {
         <CardHeader>
           <CardTitle>Data</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'ferieplan.json';
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Gem plan
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Indlæs plan
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                try {
+                  const data = JSON.parse(reader.result as string);
+                  setPendingImport(data);
+                  setImportDialogOpen(true);
+                } catch {
+                  alert('Ugyldig JSON-fil.');
+                }
+              };
+              reader.readAsText(file);
+              e.target.value = '';
+            }}
+          />
+          <AlertDialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Indlæs plan?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Dette erstatter alle dine nuværende indstillinger og valgte feriedage med data fra filen. Handlingen kan ikke fortrydes.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setPendingImport(null)}>Annuller</AlertDialogCancel>
+                <AlertDialogAction onClick={() => {
+                  if (pendingImport) {
+                    setState(pendingImport);
+                    setPendingImport(null);
+                  }
+                }}>
+                  Indlæs
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
-                variant="ghost"
-                className="w-full text-muted-foreground hover:bg-red-100 hover:text-red-700"
+                variant="outline"
+                className="w-full hover:bg-red-100 hover:text-red-700 hover:border-red-300"
               >
                 Ryd alting
               </Button>
