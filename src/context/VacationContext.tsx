@@ -1,15 +1,17 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toISODate } from '@/lib/dateUtils';
-import type { VacationState } from '@/types';
+import type { Holiday, VacationState } from '@/types';
 
 const defaultState: VacationState = {
-  startDate: toISODate(new Date()),
+  startDate: toISODate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
   initialVacationDays: 0,
   extraDaysMonth: 5,
+  extraDaysCount: 5,
   yearRange: 'current',
   selectedDates: [],
   enabledHolidays: {},
+  holidays: [],
 };
 
 interface VacationContextType {
@@ -17,7 +19,8 @@ interface VacationContextType {
   setState: (value: VacationState | ((prev: VacationState) => VacationState)) => void;
   toggleDate: (dateStr: string) => void;
   toggleHoliday: (dateStr: string) => void;
-  initHolidays: (dates: string[], names: Record<string, string>) => void;
+  initDefaults: (holidays: Holiday[], extraMonth: number, extraCount: number) => void;
+  addHoliday: (date: string, name: string) => void;
   resetState: () => void;
   holidayNames: Record<string, string>;
   setHighlightedDate: (date: string | null) => void;
@@ -31,8 +34,15 @@ export function VacationProvider({ children }: { children: ReactNode }) {
     'ferieplan-state',
     defaultState
   );
-  const [holidayNames, setHolidayNames] = useState<Record<string, string>>({});
   const calendarRef = useRef<HTMLDivElement | null>(null);
+
+  const holidayNames = useMemo(() => {
+    const names: Record<string, string> = {};
+    for (const h of state.holidays) {
+      names[h.date] = h.name;
+    }
+    return names;
+  }, [state.holidays]);
 
   const setHighlightedDate = useCallback((date: string | null) => {
     const container = calendarRef.current;
@@ -64,30 +74,30 @@ export function VacationProvider({ children }: { children: ReactNode }) {
     }));
   }, [setState]);
 
-  const holidayNamesRef = useRef(false);
-  const initHolidays = useCallback((dates: string[], names: Record<string, string>) => {
-    if (!holidayNamesRef.current) {
-      holidayNamesRef.current = true;
-      setHolidayNames(names);
-    }
+  const initDefaults = useCallback((holidays: Holiday[], extraMonth: number, extraCount: number) => {
     setState((prev) => {
-      const existing = prev.enabledHolidays;
-      const hasAny = Object.keys(existing).length > 0;
-      if (hasAny) return prev;
+      if (prev.holidays.length > 0) return prev;
       const enabled: Record<string, boolean> = {};
-      for (const d of dates) {
-        enabled[d] = true;
+      for (const h of holidays) {
+        enabled[h.date] = h.enabled;
       }
-      return { ...prev, enabledHolidays: enabled };
+      return { ...prev, holidays, enabledHolidays: enabled, extraDaysMonth: extraMonth, extraDaysCount: extraCount };
     });
   }, [setState]);
 
+  const addHoliday = useCallback((date: string, name: string) => {
+    setState((prev) => ({
+      ...prev,
+      holidays: [...prev.holidays, { date, name, enabled: true }].sort((a, b) => a.date.localeCompare(b.date)),
+      enabledHolidays: { ...prev.enabledHolidays, [date]: true },
+    }));
+  }, [setState]);
+
   const resetState = useCallback(() => {
-    holidayNamesRef.current = false;
     setState({ ...defaultState, startDate: toISODate(new Date()) });
   }, [setState]);
 
-  const value = useMemo(() => ({ state, setState, toggleDate, toggleHoliday, initHolidays, resetState, holidayNames, setHighlightedDate, calendarRef }), [state, setState, toggleDate, toggleHoliday, initHolidays, resetState, holidayNames, setHighlightedDate]);
+  const value = useMemo(() => ({ state, setState, toggleDate, toggleHoliday, initDefaults, addHoliday, resetState, holidayNames, setHighlightedDate, calendarRef }), [state, setState, toggleDate, toggleHoliday, initDefaults, addHoliday, resetState, holidayNames, setHighlightedDate]);
 
   return (
     <VacationCtx.Provider value={value}>

@@ -7,9 +7,11 @@ Danish vacation day planner — client-side React app with no backend.
 - The "vacation obtain period" runs from 1 September Year 0 to 31 August Year 1.
 - Vacation obtained in that period can be used from 1 September Year 0 through 31 December Year 1 (the "vacation usable period").
 - Each month the employee earns 2.08 vacation days.
-- At a configurable month, the employee receives 5 extra days ("6. ferieuge").
+- At a configurable month, the employee receives a configurable number of extra days ("6. ferieuge", default 5).
 - Public holidays are automatically free and do not consume vacation days.
-- Holiday data is pre-populated in `public/data.json` for 2025–2027 (Nytårsdag, Skærtorsdag, Langfredag, Påskedag, 2. påskedag, Kristi himmelfartsdag, Pinsedag, 2. pinsedag, Grundlovsdag, 1. juledag, 2. juledag). Extend this file to add more years.
+- Default holiday data lives in `public/default.json` for 2026–2027. This file seeds the user's holiday list on first load (or after reset). Each holiday has a `date`, `name`, and `enabled` boolean.
+- The user can add custom holidays via a popover (+) button in the Helligdage card header.
+- Holidays (including user-added ones) are persisted in `state.holidays` in localStorage, not re-fetched from the JSON on every load.
 
 ## Tech Stack
 
@@ -30,7 +32,7 @@ Danish vacation day planner — client-side React app with no backend.
 ```
 src/
 ├── components/
-│   ├── ui/                # shadcn components (accordion, alert-dialog, button, card, input, label, scroll-area, select, switch, tooltip)
+│   ├── ui/                # shadcn components (accordion, alert-dialog, button, card, input, label, popover, scroll-area, select, switch, tooltip)
 │   ├── App.tsx            # Root: VacationProvider + TooltipProvider + 2-column layout
 │   ├── ConfigPane.tsx     # Left pane: settings, holiday toggles (accordion by year), data management (reset)
 │   ├── CalendarView.tsx   # Right pane: scrollable grid of months based on yearRange
@@ -39,37 +41,45 @@ src/
 ├── context/
 │   └── VacationContext.tsx # Global state with localStorage persistence
 ├── hooks/
-│   ├── useHolidays.ts     # Fetches public/data.json
+│   ├── useHolidays.ts     # useDefaults() — fetches public/default.json (DefaultData)
 │   └── useLocalStorage.ts # Generic localStorage hook
 ├── lib/
 │   ├── utils.ts           # cn() helper (shadcn)
 │   ├── dateUtils.ts       # DA_DAY_NAMES, formatMonthYear, generateMonths, getVisibleYears, toISODate
 │   └── vacationCalculations.ts  # Balance logic, day status determination
 ├── types/
-│   └── index.ts           # Holiday, VacationState, YearRange, DayStatus
+│   └── index.ts           # Holiday, DefaultData, VacationState, YearRange, DayStatus
 ├── main.tsx
 └── index.css              # Tailwind imports + CSS variables (light theme only)
 public/
-└── data.json              # Danish holidays 2025–2027
+└── default.json           # Default holidays 2026–2027 + extraHoliday config
 ```
 
 ## State Shape (persisted to localStorage as `ferieplan-state`)
 
 ```ts
 interface VacationState {
-  startDate: string;              // ISO date, default: today
+  startDate: string;              // ISO date, default: 1st of current month
   initialVacationDays: number;    // days available at start, default: 0
-  extraDaysMonth: number;         // 1–12, month when 5 extra days granted, default: 5 (May)
+  extraDaysMonth: number;         // 1–12, month when extra days granted, default: 5 (May)
+  extraDaysCount: number;         // number of extra days granted, default: 5
   yearRange: 'current' | 'current+next';  // calendar display range, default: 'current'
   selectedDates: string[];        // ISO dates user picked as vacation
   enabledHolidays: Record<string, boolean>; // holiday date → enabled
+  holidays: Holiday[];            // full holiday list (persisted, seeded from default.json)
+}
+
+interface Holiday {
+  date: string;    // ISO date
+  name: string;    // Danish name
+  enabled: boolean; // default enabled state (used when seeding)
 }
 ```
 
 ## Vacation Calculation Logic
 
 1. From `startDate`, each elapsed month earns 2.08 days
-2. In the configured `extraDaysMonth`, 5 extra days are added (per year)
+2. In the configured `extraDaysMonth`, `extraDaysCount` extra days are added (per year)
 3. Selected dates (excluding enabled holidays) count as used days
 4. Balance = initialDays + earned + extra − used
 5. A selected day is **green** if balance ≥ 0 after counting it; **yellow** if balance < 0
@@ -92,10 +102,12 @@ interface VacationState {
 - Calendar view has `max-w-5xl` to prevent stretching on wide monitors
 - Year range selector: "Indeværende år" (12 months) or "Indeværende + næste år" (24 months)
 - State survives page refresh via localStorage
-- `holidayNames` map is held in context (non-persisted) for tooltip lookups
+- `holidayNames` map is derived via `useMemo` from `state.holidays` for tooltip lookups
 - Holiday highlight ring uses a DOM-based approach (not React state) for performance: `setHighlightedDate` toggles a `data-highlighted` attribute on `[data-date]` buttons via `calendarRef`, styled with Tailwind `data-[highlighted=true]:ring-*` selectors. This avoids re-rendering all CalendarDay components on hover.
-- "Ryd alting" button in the Data card resets state in-place via `resetState()` (no page reload). It clears the `holidayNamesRef` guard so holidays re-initialize on the next render.
-- Context functions (`toggleDate`, `toggleHoliday`, `initHolidays`, `resetState`) are wrapped in `useCallback` to avoid infinite re-render loops
+- "Ryd alting" button in the Data card resets state in-place via `resetState()` (no page reload). After reset, `initDefaults` re-seeds holidays from `default.json` on next render.
+- Context functions (`toggleDate`, `toggleHoliday`, `initDefaults`, `addHoliday`, `resetState`) are wrapped in `useCallback` to avoid infinite re-render loops
+- Current year accordion is expanded by default; other years are collapsed
+- Users can add custom holidays via a Popover with a name field and native date picker
 
 ## Locale
 

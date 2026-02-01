@@ -21,7 +21,8 @@ function calculateEarnedDays(
 function calculateExtraDays(
   startDate: string,
   targetDate: string,
-  extraDaysMonth: number
+  extraDaysMonth: number,
+  extraDaysCount: number
 ): number {
   const start = parseISO(startDate);
   const target = parseISO(targetDate);
@@ -31,7 +32,7 @@ function calculateExtraDays(
   for (let y = startYear; y <= targetYear; y++) {
     const extraDate = new Date(y, extraDaysMonth - 1, 1);
     if (extraDate >= start && extraDate <= target) {
-      total += 5;
+      total += extraDaysCount;
     }
   }
   return total;
@@ -54,12 +55,13 @@ export function getBalance(
   startDate: string,
   initialDays: number,
   extraDaysMonth: number,
+  extraDaysCount: number,
   selectedDates: string[],
   enabledHolidays: Record<string, boolean>,
   atDate: string
 ): number {
   const earned = calculateEarnedDays(startDate, atDate);
-  const extra = calculateExtraDays(startDate, atDate, extraDaysMonth);
+  const extra = calculateExtraDays(startDate, atDate, extraDaysMonth, extraDaysCount);
   const used = countUsedDays(selectedDates, enabledHolidays, atDate);
   return initialDays + earned + extra - used;
 }
@@ -70,7 +72,8 @@ export function getDayStatus(
   enabledHolidays: Record<string, boolean>,
   startDate: string,
   initialDays: number,
-  extraDaysMonth: number
+  extraDaysMonth: number,
+  extraDaysCount: number
 ): DayStatus {
   const date = parseISO(dateStr);
 
@@ -87,6 +90,7 @@ export function getDayStatus(
       startDate,
       initialDays,
       extraDaysMonth,
+      extraDaysCount,
       selectedDates,
       enabledHolidays,
       dateStr

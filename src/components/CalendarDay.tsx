@@ -32,11 +32,11 @@ function useTooltipText(dateStr: string, status: string): string {
     case 'weekend':
       return `${dateLabel}\nWeekend`;
     case 'selected-ok': {
-      const bal = getBalance(state.startDate, state.initialVacationDays, state.extraDaysMonth, state.selectedDates, state.enabledHolidays, dateStr);
+      const bal = getBalance(state.startDate, state.initialVacationDays, state.extraDaysMonth, state.extraDaysCount, state.selectedDates, state.enabledHolidays, dateStr);
       return `${dateLabel}\nFeriedag (saldo: ${bal.toFixed(1)})`;
     }
     case 'selected-warning': {
-      const bal = getBalance(state.startDate, state.initialVacationDays, state.extraDaysMonth, state.selectedDates, state.enabledHolidays, dateStr);
+      const bal = getBalance(state.startDate, state.initialVacationDays, state.extraDaysMonth, state.extraDaysCount, state.selectedDates, state.enabledHolidays, dateStr);
       return `${dateLabel}\nFeriedag – ikke nok dage! (saldo: ${bal.toFixed(1)})`;
     }
     default:
@@ -54,7 +54,8 @@ export function CalendarDay({ date }: CalendarDayProps) {
     state.enabledHolidays,
     state.startDate,
     state.initialVacationDays,
-    state.extraDaysMonth
+    state.extraDaysMonth,
+    state.extraDaysCount
   );
 
   const isHoliday = status === 'holiday';

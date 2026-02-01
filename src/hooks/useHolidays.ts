@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
-import type { Holiday } from '@/types';
+import type { DefaultData } from '@/types';
 
-export function useHolidays() {
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
+const emptyData: DefaultData = {
+  holidays: [],
+  extraHoliday: { defaultMonth: 5, defaultCount: 5 },
+};
+
+export function useDefaults() {
+  const [data, setData] = useState<DefaultData>(emptyData);
 
   useEffect(() => {
-    fetch('/data.json')
+    fetch('/default.json')
       .then((r) => r.json())
-      .then((data) => setHolidays(data.holidays))
+      .then((d: DefaultData) => setData(d))
       .catch(console.error);
   }, []);
 
-  return holidays;
+  return data;
 }
