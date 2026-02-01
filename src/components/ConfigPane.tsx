@@ -223,7 +223,7 @@ export function ConfigPane() {
                           onMouseEnter={() => setHighlightedDate(h.date)}
                           onMouseLeave={() => setHighlightedDate(null)}
                         >
-                          <span>{h.name}</span>
+                          <span className="cursor-pointer select-none" onClick={() => toggleHoliday(h.date)}>{h.name}</span>
                           <Switch
                             checked={!!state.enabledHolidays[h.date]}
                             onCheckedChange={() => toggleHoliday(h.date)}
