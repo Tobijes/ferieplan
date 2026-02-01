@@ -272,6 +272,11 @@ export function computeAllStatuses(
   const sortedSelected = [...selectedDates].filter(d => !enabledHolidays[d]).sort();
 
   for (const dateStr of dates) {
+    if (dateStr < startDate) {
+      result[dateStr] = 'before-start';
+      continue;
+    }
+
     const date = parseISO(dateStr);
 
     if (enabledHolidays[dateStr]) {

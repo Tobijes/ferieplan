@@ -24,6 +24,7 @@ const statusClasses: Record<string, string> = {
   'selected-warning': 'bg-yellow-300 text-yellow-900',
   'selected-overdrawn': 'bg-red-300 text-red-900',
   'normal': 'hover:bg-gray-100',
+  'before-start': 'opacity-30 cursor-default',
 };
 
 function BalanceLines({ dateStr }: { dateStr: string }) {
@@ -32,11 +33,11 @@ function BalanceLines({ dateStr }: { dateStr: string }) {
     state.startDate, state.initialVacationDays, state.extraDaysMonth,
     state.extraDaysCount, state.selectedDates, state.enabledHolidays, dateStr, state.maxTransferDays
   );
-  const visible = balances.filter((b) => !b.expired && (b.earned + b.extra + b.transferred) > 0);
+  const visible = balances.filter((b) => !b.expired && (b.earned + b.extra + b.transferred > 0 || b.balance !== 0));
   return (
     <>
       {visible.map((b) => (
-        <span key={b.year}>{'\n'}Ferieåret {b.year}: {b.balance.toFixed(1)}</span>
+        <span key={b.year}>{'\n'}Ferieåret {b.year}: {b.balance.toFixed(2)}</span>
       ))}
     </>
   );
@@ -64,28 +65,34 @@ function TooltipBody({ dateStr, status }: { dateStr: string; status: DayStatus }
 
 export const CalendarDay = memo(function CalendarDay({ dateStr, dayOfMonth, status }: CalendarDayProps) {
   const { toggleDate } = useVacation();
-  const isHoliday = status === 'holiday';
+  const isDisabled = status === 'holiday' || status === 'before-start';
 
   const handleClick = useCallback(() => {
-    if (isHoliday) return;
+    if (isDisabled) return;
     toggleDate(dateStr);
-  }, [isHoliday, toggleDate, dateStr]);
+  }, [isDisabled, toggleDate, dateStr]);
+
+  const button = (
+    <button
+      data-date={dateStr}
+      onClick={handleClick}
+      disabled={isDisabled}
+      className={cn(
+        'w-8 h-8 rounded-full text-sm flex items-center justify-center transition-colors data-[highlighted=true]:ring-2 data-[highlighted=true]:ring-blue-500/60',
+        statusClasses[status],
+        isDisabled && 'cursor-default',
+      )}
+    >
+      {dayOfMonth}
+    </button>
+  );
+
+  if (status === 'before-start') return button;
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
-          data-date={dateStr}
-          onClick={handleClick}
-          disabled={isHoliday}
-          className={cn(
-            'w-8 h-8 rounded-full text-sm flex items-center justify-center transition-colors data-[highlighted=true]:ring-2 data-[highlighted=true]:ring-blue-500/60',
-            statusClasses[status],
-            isHoliday && 'cursor-default',
-          )}
-        >
-          {dayOfMonth}
-        </button>
+        {button}
       </TooltipTrigger>
       <TooltipContent className="whitespace-pre-line text-xs">
         <TooltipBody dateStr={dateStr} status={status} />

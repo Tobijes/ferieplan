@@ -29,7 +29,7 @@ function DecemberExpirySubtitle({ year }: { year: number }) {
   if (!expiring || expiring.lost <= 0) return null;
   return (
     <div className="text-xs text-red-600 text-center">
-      {expiring.lost.toFixed(1)} feriedage overføres ikke
+      {expiring.lost.toFixed(2)} feriedage overføres ikke
     </div>
   );
 }

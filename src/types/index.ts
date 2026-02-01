@@ -46,4 +46,5 @@ export type DayStatus =
   | 'holiday'
   | 'selected-ok'
   | 'selected-warning'
-  | 'selected-overdrawn';
+  | 'selected-overdrawn'
+  | 'before-start';
