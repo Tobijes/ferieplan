@@ -1,6 +1,6 @@
+import { memo, useCallback } from 'react';
 import { useVacation } from '@/context/VacationContext';
-import { getDayStatus, getBalance } from '@/lib/vacationCalculations';
-import { toISODate } from '@/lib/dateUtils';
+import { getBalance } from '@/lib/vacationCalculations';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -9,9 +9,12 @@ import {
 } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { da } from 'date-fns/locale';
+import type { DayStatus } from '@/types';
 
 interface CalendarDayProps {
-  date: Date;
+  dateStr: string;
+  dayOfMonth: number;
+  status: DayStatus;
 }
 
 const statusClasses: Record<string, string> = {
@@ -22,49 +25,33 @@ const statusClasses: Record<string, string> = {
   'normal': 'hover:bg-gray-100',
 };
 
-function useTooltipText(dateStr: string, status: string): string {
+function TooltipBody({ dateStr, status }: { dateStr: string; status: DayStatus }) {
   const { state, holidayNames } = useVacation();
   const dateLabel = format(new Date(dateStr + 'T00:00:00'), 'EEEE d. MMMM yyyy', { locale: da });
+  const bal = getBalance(state.startDate, state.initialVacationDays, state.extraDaysMonth, state.extraDaysCount, state.selectedDates, state.enabledHolidays, dateStr);
 
   switch (status) {
     case 'holiday':
-      return `${dateLabel}\n${holidayNames[dateStr] ?? 'Helligdag'}`;
+      return <>{dateLabel}{'\n'}{holidayNames[dateStr] ?? 'Helligdag'}{'\n'}Saldo: {bal.toFixed(1)}</>;
     case 'weekend':
-      return `${dateLabel}\nWeekend`;
-    case 'selected-ok': {
-      const bal = getBalance(state.startDate, state.initialVacationDays, state.extraDaysMonth, state.extraDaysCount, state.selectedDates, state.enabledHolidays, dateStr);
-      return `${dateLabel}\nFeriedag (saldo: ${bal.toFixed(1)})`;
-    }
-    case 'selected-warning': {
-      const bal = getBalance(state.startDate, state.initialVacationDays, state.extraDaysMonth, state.extraDaysCount, state.selectedDates, state.enabledHolidays, dateStr);
-      return `${dateLabel}\nFeriedag – ikke nok dage! (saldo: ${bal.toFixed(1)})`;
-    }
+      return <>{dateLabel}{'\n'}Weekend{'\n'}Saldo: {bal.toFixed(1)}</>;
+    case 'selected-ok':
+      return <>{dateLabel}{'\n'}Feriedag{'\n'}Saldo: {bal.toFixed(1)}</>;
+    case 'selected-warning':
+      return <>{dateLabel}{'\n'}Feriedag – ikke nok dage!{'\n'}Saldo: {bal.toFixed(1)}</>;
     default:
-      return dateLabel;
+      return <>{dateLabel}{'\n'}Saldo: {bal.toFixed(1)}</>;
   }
 }
 
-export function CalendarDay({ date }: CalendarDayProps) {
-  const { state, toggleDate } = useVacation();
-  const dateStr = toISODate(date);
-
-  const status = getDayStatus(
-    dateStr,
-    state.selectedDates,
-    state.enabledHolidays,
-    state.startDate,
-    state.initialVacationDays,
-    state.extraDaysMonth,
-    state.extraDaysCount
-  );
-
+export const CalendarDay = memo(function CalendarDay({ dateStr, dayOfMonth, status }: CalendarDayProps) {
+  const { toggleDate } = useVacation();
   const isHoliday = status === 'holiday';
-  const tooltipText = useTooltipText(dateStr, status);
 
-  function handleClick() {
+  const handleClick = useCallback(() => {
     if (isHoliday) return;
     toggleDate(dateStr);
-  }
+  }, [isHoliday, toggleDate, dateStr]);
 
   return (
     <Tooltip>
@@ -79,12 +66,12 @@ export function CalendarDay({ date }: CalendarDayProps) {
             isHoliday && 'cursor-default',
           )}
         >
-          {date.getDate()}
+          {dayOfMonth}
         </button>
       </TooltipTrigger>
       <TooltipContent className="whitespace-pre-line text-xs">
-        {tooltipText}
+        <TooltipBody dateStr={dateStr} status={status} />
       </TooltipContent>
     </Tooltip>
   );
-}
+});

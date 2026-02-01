@@ -66,6 +66,55 @@ export function getBalance(
   return initialDays + earned + extra - used;
 }
 
+export function computeAllStatuses(
+  dates: string[],
+  selectedDates: string[],
+  enabledHolidays: Record<string, boolean>,
+  startDate: string,
+  initialDays: number,
+  extraDaysMonth: number,
+  extraDaysCount: number
+): Record<string, DayStatus> {
+  const result: Record<string, DayStatus> = {};
+  const selectedSet = new Set(selectedDates);
+
+  // Pre-sort selected dates and precompute balances in one pass
+  const sortedSelected = [...selectedDates].filter(d => !enabledHolidays[d]).sort();
+
+  for (const dateStr of dates) {
+    const date = parseISO(dateStr);
+
+    if (enabledHolidays[dateStr]) {
+      result[dateStr] = 'holiday';
+      continue;
+    }
+
+    if (isWeekend(date) && !selectedSet.has(dateStr)) {
+      result[dateStr] = 'weekend';
+      continue;
+    }
+
+    if (selectedSet.has(dateStr)) {
+      // Count used days up to and including this date
+      const usedCount = sortedSelected.filter(d => d <= dateStr).length;
+      const earned = calculateEarnedDays(startDate, dateStr);
+      const extra = calculateExtraDays(startDate, dateStr, extraDaysMonth, extraDaysCount);
+      const balance = initialDays + earned + extra - usedCount;
+      result[dateStr] = balance >= 0 ? 'selected-ok' : 'selected-warning';
+      continue;
+    }
+
+    if (isWeekend(date)) {
+      result[dateStr] = 'weekend';
+      continue;
+    }
+
+    result[dateStr] = 'normal';
+  }
+
+  return result;
+}
+
 export function getDayStatus(
   dateStr: string,
   selectedDates: string[],

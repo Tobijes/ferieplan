@@ -96,14 +96,18 @@ interface Holiday {
 
 ## Key Behaviors
 
-- All dates have tooltips on hover showing full Danish date + status reason
+- All dates have tooltips on hover showing full Danish date, status reason, and current vacation balance (Saldo)
 - Holidays in config pane show date tooltip on hover and highlight the corresponding calendar day with a blue ring
 - Holidays are grouped by year in an accordion, filtered to only show years visible in the calendar
 - Calendar view has `max-w-5xl` to prevent stretching on wide monitors
 - Year range selector: "Indeværende år" (12 months) or "Indeværende + næste år" (24 months)
 - State survives page refresh via localStorage
 - `holidayNames` map is derived via `useMemo` from `state.holidays` for tooltip lookups
+- `dayStatuses` map is precomputed via `useMemo` in the context (`computeAllStatuses`) for all visible days in a single pass, avoiding per-cell `getDayStatus` calls
+- `CalendarDay` and `CalendarMonth` are wrapped in `React.memo` to skip re-renders when props (primitive strings) haven't changed
+- Tooltip content (`TooltipBody`) is rendered lazily inside `TooltipContent`, so balance computation only runs on hover
 - Holiday highlight ring uses a DOM-based approach (not React state) for performance: `setHighlightedDate` toggles a `data-highlighted` attribute on `[data-date]` buttons via `calendarRef`, styled with Tailwind `data-[highlighted=true]:ring-*` selectors. This avoids re-rendering all CalendarDay components on hover.
+- Holiday labels in ConfigPane are clickable to toggle the holiday (same as the switch)
 - "Ryd alting" button in the Data card resets state in-place via `resetState()` (no page reload). After reset, `initDefaults` re-seeds holidays from `default.json` on next render.
 - Context functions (`toggleDate`, `toggleHoliday`, `initDefaults`, `addHoliday`, `resetState`) are wrapped in `useCallback` to avoid infinite re-render loops
 - Current year accordion is expanded by default; other years are collapsed
