@@ -5,7 +5,7 @@ import { computeAllStatuses } from '@/lib/vacationCalculations';
 import { eachDayOfInterval, startOfMonth, endOfMonth } from 'date-fns';
 import type { Holiday, DayStatus, VacationState } from '@/types';
 
-const defaultState: VacationState = {
+export const defaultState: VacationState = {
   startDate: toISODate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
   initialVacationDays: 0,
   extraDaysMonth: 5,

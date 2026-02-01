@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
-import { useVacation } from '@/context/VacationContext';
+import { useVacation, defaultState } from '@/context/VacationContext';
 import { useDefaults } from '@/hooks/useHolidays';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -336,7 +336,7 @@ export function ConfigPane() {
               const reader = new FileReader();
               reader.onload = () => {
                 try {
-                  const data = JSON.parse(reader.result as string);
+                  const data = { ...defaultState, ...JSON.parse(reader.result as string) };
                   setPendingImport(data);
                   setImportDialogOpen(true);
                 } catch {
