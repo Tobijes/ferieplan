@@ -80,7 +80,7 @@ export const CalendarDay = memo(function CalendarDay({ dateStr, dayOfMonth, stat
       className={cn(
         'w-8 h-8 rounded-full text-sm flex items-center justify-center transition-colors data-[highlighted=true]:ring-2 data-[highlighted=true]:ring-blue-500/60',
         statusClasses[status],
-        isDisabled && 'cursor-default',
+        isDisabled ? 'cursor-default' : 'cursor-pointer',
       )}
     >
       {dayOfMonth}

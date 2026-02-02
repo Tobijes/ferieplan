@@ -70,6 +70,7 @@ import { format } from 'date-fns';
 import { da } from 'date-fns/locale';
 import { getVisibleYears } from '@/lib/dateUtils';
 import type { VacationState, YearRange } from '@/types';
+import { HelpIcon } from '@/components/HelpIcon';
 
 
 const MONTH_NAMES = [
@@ -124,100 +125,122 @@ export function ConfigPane() {
         <CardContent className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="startDate">Startdato</Label>
-            <Input
-              id="startDate"
-              type="date"
-              value={state.startDate}
-              onChange={(e) =>
-                setState((prev) => ({ ...prev, startDate: e.target.value }))
-              }
-            />
+            <div className="flex gap-2 items-center">
+              <Input
+                id="startDate"
+                type="date"
+                value={state.startDate}
+                className="flex-1"
+                onChange={(e) =>
+                  setState((prev) => ({ ...prev, startDate: e.target.value }))
+                }
+              />
+              <HelpIcon text="Første dag hvor ferieplanen starter. Dage før denne dato kan ikke vælges." />
+            </div>
           </div>
           <div className="space-y-1">
             <Label htmlFor="initialDays">Feriedage ved start</Label>
-            <DeferredNumberInput
-              id="initialDays"
-              min={0}
-              max={99}
-              value={state.initialVacationDays}
-              onCommit={(v) =>
-                setState((prev) => ({
-                  ...prev,
-                  initialVacationDays: v,
-                }))
-              }
-            />
-          </div>
-          <div className="space-y-1">
-            <Label>Ekstra feriedage</Label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <DeferredNumberInput
+                id="initialDays"
                 min={0}
                 max={99}
-                className="w-20"
-                value={state.extraDaysCount}
+                className="flex-1"
+                value={state.initialVacationDays}
                 onCommit={(v) =>
-                  setState((prev) => ({ ...prev, extraDaysCount: v }))
+                  setState((prev) => ({
+                    ...prev,
+                    initialVacationDays: v,
+                  }))
                 }
               />
-              <Select
-                value={String(state.extraDaysMonth)}
-                onValueChange={(v) =>
-                  setState((prev) => ({ ...prev, extraDaysMonth: Number(v) }))
-                }
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTH_NAMES.map((name, i) => (
-                    <SelectItem key={i + 1} value={String(i + 1)}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <HelpIcon text="Antal feriedage du allerede har optjent ved startdatoen." />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="flex gap-2 items-end">
+              <div className="grow-[2] basis-0 min-w-0 space-y-1">
+                <Label>Ekstra feriedage</Label>
+                <DeferredNumberInput
+                  min={0}
+                  max={99}
+                  value={state.extraDaysCount}
+                  onCommit={(v) =>
+                    setState((prev) => ({ ...prev, extraDaysCount: v }))
+                  }
+                />
+              </div>
+              <div className="grow-[3] basis-0 min-w-0 space-y-1">
+                <Label>Tildeles i</Label>
+                <Select
+                  value={String(state.extraDaysMonth)}
+                  onValueChange={(v) =>
+                    setState((prev) => ({ ...prev, extraDaysMonth: Number(v) }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTH_NAMES.map((name, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <HelpIcon text="Ekstra feriedage (f.eks. 6. ferieuge) og hvilken måned de tildeles." />
             </div>
           </div>
           <div className="space-y-1">
             <Label htmlFor="advanceDays">Forskudsferie</Label>
-            <DeferredNumberInput
-              id="advanceDays"
-              min={0}
-              max={99}
-              value={state.advanceDays}
-              onCommit={(v) =>
-                setState((prev) => ({
-                  ...prev,
-                  advanceDays: v,
-                }))
-              }
-            />
+            <div className="flex gap-2 items-center">
+              <DeferredNumberInput
+                id="advanceDays"
+                min={0}
+                max={99}
+                className="flex-1"
+                value={state.advanceDays}
+                onCommit={(v) =>
+                  setState((prev) => ({
+                    ...prev,
+                    advanceDays: v,
+                  }))
+                }
+              />
+              <HelpIcon text="Antal dage du må låne på forskud, før de er optjent." />
+            </div>
           </div>
           <div className="space-y-1">
             <Label htmlFor="maxTransferDays">Overførbare feriedage</Label>
-            <DeferredNumberInput
-              id="maxTransferDays"
-              min={0}
-              max={99}
-              value={state.maxTransferDays}
-              onCommit={(v) =>
-                setState((prev) => ({
-                  ...prev,
-                  maxTransferDays: v,
-                }))
-              }
-            />
+            <div className="flex gap-2 items-center">
+              <DeferredNumberInput
+                id="maxTransferDays"
+                min={0}
+                max={99}
+                className="flex-1"
+                value={state.maxTransferDays}
+                onCommit={(v) =>
+                  setState((prev) => ({
+                    ...prev,
+                    maxTransferDays: v,
+                  }))
+                }
+              />
+              <HelpIcon text="Maks antal ubrugte feriedage der kan overføres til næste ferieår." />
+            </div>
           </div>
           <div className="space-y-1">
             <Label>Visning</Label>
+            <div className="flex gap-2 items-center">
             <Select
               value={state.yearRange}
               onValueChange={(v) =>
                 setState((prev) => ({ ...prev, yearRange: v as YearRange }))
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="flex-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -225,6 +248,8 @@ export function ConfigPane() {
                 <SelectItem value="current+next">Indeværende + næste år</SelectItem>
               </SelectContent>
             </Select>
+              <HelpIcon text="Vælg om kalenderen viser indeværende år eller også næste år." />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -275,15 +300,18 @@ export function ConfigPane() {
                     <Tooltip key={h.date}>
                       <TooltipTrigger asChild>
                         <div
-                          className="flex items-center justify-between text-sm"
+                          className="flex items-center justify-between text-sm cursor-pointer select-none hover:bg-muted rounded-md px-1 -mx-1"
                           onMouseEnter={() => setHighlightedDate(h.date)}
                           onMouseLeave={() => setHighlightedDate(null)}
+                          onClick={() => toggleHoliday(h.date)}
                         >
-                          <span className="cursor-pointer select-none" onClick={() => toggleHoliday(h.date)}>{h.name}</span>
-                          <Switch
-                            checked={!!state.enabledHolidays[h.date]}
-                            onCheckedChange={() => toggleHoliday(h.date)}
-                          />
+                          <span>{h.name}</span>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Switch
+                              checked={!!state.enabledHolidays[h.date]}
+                              onCheckedChange={() => toggleHoliday(h.date)}
+                            />
+                          </div>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="text-xs">

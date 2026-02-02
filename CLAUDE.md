@@ -1,3 +1,9 @@
+Always remember to update this document (CLAUDE.md) when
+- New or updated information from developer
+- Changing behaviour
+- Updating logic
+- Updating architecture
+
 # Ferieplan
 
 Danish vacation day planner — client-side React app with no backend.
@@ -40,6 +46,7 @@ src/
 ├── components/
 │   ├── ui/                # shadcn components (accordion, alert-dialog, button, card, input, label, popover, scroll-area, select, switch, tooltip)
 │   ├── App.tsx            # Root: VacationProvider + TooltipProvider + 2-column layout
+│   ├── HelpIcon.tsx       # Reusable "?" popover icon (click-to-open, click-outside-to-close) using lucide-react CircleHelp
 │   ├── ConfigPane.tsx     # Left pane: settings, holiday toggles (accordion by year), data management (reset)
 │   ├── CalendarView.tsx   # Right pane: scrollable grid of months based on yearRange
 │   ├── CalendarMonth.tsx  # Single month: header + 7-col day grid (Mon–Sun)
@@ -123,6 +130,7 @@ A legacy `getBalance()` function still exists for backward compatibility but the
 
 ## Key Behaviors
 
+- Each config field in the settings card has a `HelpIcon` (CircleHelp from lucide-react) placed to the right of the input element. Click opens a Popover with a Danish description; click outside dismisses (touch-friendly, no hover required).
 - Dates before `startDate` are disabled and not selectable (status `before-start`)
 - Each month header shows per-ferieår balance summaries for active ferieår
 - All dates have tooltips on hover showing full Danish date, status reason, and current vacation balance (Saldo)
