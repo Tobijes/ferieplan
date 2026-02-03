@@ -4,7 +4,7 @@ import { useDefaults } from '@/hooks/useHolidays';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
-import { ChevronDownIcon, PlusIcon } from 'lucide-react';
+import { ChevronDownIcon, Download, PlusIcon, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -397,29 +397,61 @@ export function ConfigPane() {
             <ChevronDownIcon className={cn("size-4 text-muted-foreground shrink-0 transition-transform duration-200", dataOpen && "rotate-180")} />
           </CardHeader>
           <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-            <CardContent className="space-y-2 pt-4">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = 'ferieplan.json';
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-              >
-                Gem plan
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Indlæs plan
-              </Button>
+            <CardContent className="pt-4">
+              <div className="flex gap-2 justify-center">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-auto flex-col gap-1 py-3 cursor-pointer"
+                  onClick={() => {
+                    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'ferieplan.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  <Download className="size-5" />
+                  <span className="text-xs">Gem</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-auto flex-col gap-1 py-3 cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="size-5" />
+                  <span className="text-xs">Indlæs</span>
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-auto flex-col gap-1 py-3 cursor-pointer hover:bg-red-100 hover:text-red-700 hover:border-red-300"
+                    >
+                      <Trash2 className="size-5" />
+                      <span className="text-xs">Ryd</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Er du sikker?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Dette sletter alle dine indstillinger, valgte feriedage og gemte data. Handlingen kan ikke fortrydes.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuller</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-red-600 hover:bg-red-700"
+                        onClick={resetState}
+                      >
+                        Ryd alting
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -459,33 +491,6 @@ export function ConfigPane() {
                       }
                     }}>
                       Indlæs
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full hover:bg-red-100 hover:text-red-700 hover:border-red-300"
-                  >
-                    Ryd alting
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Er du sikker?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Dette sletter alle dine indstillinger, valgte feriedage og gemte data. Handlingen kan ikke fortrydes.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuller</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-red-600 hover:bg-red-700"
-                      onClick={resetState}
-                    >
-                      Ryd alting
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
