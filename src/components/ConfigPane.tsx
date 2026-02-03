@@ -205,7 +205,7 @@ export function ConfigPane() {
             <CardContent className="space-y-4 pt-4">
               <div className="space-y-1">
                 <div className="flex gap-2 items-end">
-                  <div className="grow-[2] basis-0 min-w-0 space-y-1">
+                  <div className="grow-[3] basis-0 min-w-0 space-y-1">
                     <Label>Ekstra feriedage</Label>
                     <DeferredNumberInput
                       min={0}
@@ -216,7 +216,7 @@ export function ConfigPane() {
                       }
                     />
                   </div>
-                  <div className="grow-[3] basis-0 min-w-0 space-y-1">
+                  <div className="grow-[2] basis-0 min-w-0 space-y-1">
                     <Label>Tildeles i</Label>
                     <Select
                       value={String(state.extraDaysMonth)}

@@ -9,7 +9,10 @@ export default function App() {
       <TooltipProvider delayDuration={200}>
         <div className="flex flex-col lg:flex-row min-h-screen bg-background text-foreground">
           <ConfigPane />
-          <div className="flex-1">
+          <div className="flex-1 flex flex-col lg:items-center">
+            <p className="text-sm text-muted-foreground text-center max-w-6xl px-4 pt-4 lg:pt-6">
+              Tryk på datoerne i kalenderen for at vælge dine feriedage.
+            </p>
             <CalendarView />
           </div>
         </div>
