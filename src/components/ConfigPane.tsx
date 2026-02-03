@@ -120,7 +120,7 @@ export function ConfigPane() {
     <div className="space-y-4 p-4 w-full lg:w-80 shrink-0">
       <Card>
         <CardHeader>
-          <CardTitle>Indstillinger</CardTitle>
+          <CardTitle>Optjent ferie</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1">
@@ -157,6 +157,14 @@ export function ConfigPane() {
               <HelpIcon text="Antal feriedage du allerede har optjent ved startdatoen." />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Indstillinger</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="space-y-1">
             <div className="flex gap-2 items-end">
               <div className="grow-[2] basis-0 min-w-0 space-y-1">
