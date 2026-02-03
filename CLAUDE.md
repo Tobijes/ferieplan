@@ -18,7 +18,7 @@ Danish vacation day planner — client-side React app with no backend.
 - "Forskudsferie" (advance vacation) allows borrowing a configurable number of days before they are earned. Default 0, seeded from `default.json`.
 - When a ferieår expires, up to `maxTransferDays` (default 5, configurable) surplus days can transfer to the next ferieår; excess days are lost.
 - Default holiday data lives in `public/default.json` for 2026–2027. This file seeds the user's holiday list on first load (or after reset). Each holiday has a `date`, `name`, and `enabled` boolean. It also seeds `maxTransferDays`.
-- The user can add custom holidays via a popover (+) button in the Helligdage card header.
+- The user can add custom holidays via a "Tilføj helligdag" button inside the Helligdage card content.
 - Holidays (including user-added ones) are persisted in `state.holidays` in localStorage, not re-fetched from the JSON on every load.
 - **Soft merge**: When loading state from localStorage or importing a saved file, missing properties are filled from `defaultState` via spread merge (`{ ...defaultState, ...stored }`). This ensures new config properties added in future versions are picked up by existing users without losing their data.
 
@@ -44,7 +44,7 @@ Danish vacation day planner — client-side React app with no backend.
 ```
 src/
 ├── components/
-│   ├── ui/                # shadcn components (accordion, alert-dialog, button, card, input, label, popover, scroll-area, select, switch, tooltip)
+│   ├── ui/                # shadcn components (accordion, alert-dialog, button, card, collapsible, input, label, popover, scroll-area, select, switch, tooltip)
 │   ├── App.tsx            # Root: VacationProvider + TooltipProvider + 2-column layout
 │   ├── HelpIcon.tsx       # Reusable "?" popover icon (click-to-open, click-outside-to-close) using lucide-react CircleHelp
 │   ├── ConfigPane.tsx     # Left pane: settings, holiday toggles (accordion by year), data management (reset)
@@ -55,7 +55,8 @@ src/
 │   └── VacationContext.tsx # Global state with localStorage persistence
 ├── hooks/
 │   ├── useHolidays.ts     # useDefaults() — fetches public/default.json (DefaultData)
-│   └── useLocalStorage.ts # Generic localStorage hook
+│   ├── useLocalStorage.ts # Generic localStorage hook
+│   └── useMediaQuery.ts   # Media query hook for responsive behavior
 ├── lib/
 │   ├── utils.ts           # cn() helper (shadcn)
 │   ├── dateUtils.ts       # DA_DAY_NAMES, formatMonthYear, generateMonths, getVisibleYears, toISODate
@@ -130,6 +131,7 @@ A legacy `getBalance()` function still exists for backward compatibility but the
 
 ## Key Behaviors
 
+- All 4 ConfigPane cards are collapsible with a chevron icon in the header. Click the header to toggle collapse/expand. Default states: desktop (lg+) all expanded, mobile only first card ("Optjent ferie") expanded.
 - Each config field in the settings card has a `HelpIcon` (CircleHelp from lucide-react) placed to the right of the input element. Click opens a Popover with a Danish description; click outside dismisses (touch-friendly, no hover required).
 - Dates before `startDate` are disabled and not selectable (status `before-start`)
 - Each month header shows per-ferieår balance summaries for active ferieår
@@ -148,7 +150,7 @@ A legacy `getBalance()` function still exists for backward compatibility but the
 - "Ryd alting" button in the Data card resets state in-place via `resetState()` (no page reload). After reset, `initDefaults` re-seeds holidays from `default.json` on next render.
 - Context functions (`toggleDate`, `toggleHoliday`, `initDefaults`, `addHoliday`, `resetState`) are wrapped in `useCallback` to avoid infinite re-render loops
 - Current year accordion is expanded by default; other years are collapsed
-- Users can add custom holidays via a Popover with a name field and native date picker
+- Users can add custom holidays via a "Tilføj helligdag" button (opens Popover with name field and native date picker) at the top of the Helligdage card content
 - Number inputs (Feriedage ved start, Ekstra feriedage, Forskudsferie) use `DeferredNumberInput` — local state while typing, commits to global state on blur/Enter. This avoids recomputing `dayStatuses` on every keystroke. All are clamped to 0–99.
 
 ## Locale
