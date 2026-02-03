@@ -190,7 +190,9 @@ export function ConfigPane() {
                   </SelectContent>
                 </Select>
               </div>
-              <HelpIcon text="Ekstra feriedage (f.eks. 6. ferieuge) og hvilken måned de tildeles." />
+              <div className="h-9 flex items-center">
+                <HelpIcon text="Ekstra feriedage (f.eks. 6. ferieuge) og hvilken måned de tildeles." />
+              </div>
             </div>
           </div>
           <div className="space-y-1">
