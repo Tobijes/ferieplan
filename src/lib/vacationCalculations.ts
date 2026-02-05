@@ -8,7 +8,7 @@ import {
   addMonths,
   format,
 } from 'date-fns';
-import type { DayStatus, FerieaarBalance } from '@/types';
+import type { DayStatus, VacationYearBalance } from '@/types';
 
 // --- Low-level helpers (exported for testing) ---
 
@@ -73,14 +73,14 @@ export function getBalance(
   return initialDays + earned + extra - used;
 }
 
-// --- Per-ferieår balance system ---
+// --- Per-vacation-year balance system ---
 
 /**
- * Get the ferieår start year for a given date.
- * Ferieår N runs Sep 1 Year N → Aug 31 Year N+1.
- * A date in Jan-Aug belongs to ferieår (year-1), Sep-Dec belongs to ferieår (year).
+ * Get the vacation year start year for a given date.
+ * Vacation year N runs Sep 1 Year N → Aug 31 Year N+1.
+ * A date in Jan-Aug belongs to vacation year (year-1), Sep-Dec belongs to vacation year (year).
  */
-export function getFerieaarForDate(dateStr: string): number {
+export function getVacationYearForDate(dateStr: string): number {
   const d = parseISO(dateStr);
   const month = d.getMonth(); // 0-indexed
   const year = d.getFullYear();
@@ -88,34 +88,34 @@ export function getFerieaarForDate(dateStr: string): number {
 }
 
 /**
- * Obtain period for ferieår N: Sep 1 Year N → Aug 31 Year N+1
+ * Obtain period for vacation year N: Sep 1 Year N → Aug 31 Year N+1
  */
-function obtainPeriod(ferieaar: number): { start: string; end: string } {
+function obtainPeriod(vacationYear: number): { start: string; end: string } {
   return {
-    start: `${ferieaar}-09-01`,
-    end: `${ferieaar + 1}-09-01`, // Use Sep 1 (exclusive) for month counting
+    start: `${vacationYear}-09-01`,
+    end: `${vacationYear + 1}-09-01`, // Use Sep 1 (exclusive) for month counting
   };
 }
 
 /**
- * Usable period for ferieår N: Sep 1 Year N → Dec 31 Year N+1
+ * Usable period for vacation year N: Sep 1 Year N → Dec 31 Year N+1
  */
-function usablePeriodEnd(ferieaar: number): string {
-  return `${ferieaar + 1}-12-31`;
+function usablePeriodEnd(vacationYear: number): string {
+  return `${vacationYear + 1}-12-31`;
 }
 
 
 /**
- * Compute earned days for a specific ferieår at a given date.
+ * Compute earned days for a specific vacation year at a given date.
  * Days are credited at the start of each month (usable from day 1 of the month).
  * If employment starts mid-month, the full month's days are still credited.
  */
-function earnedInFerieaar(
-  ferieaar: number,
+function earnedInVacationYear(
+  vacationYear: number,
   atDate: string,
   employmentStartDate: string
 ): number {
-  const obtain = obtainPeriod(ferieaar);
+  const obtain = obtainPeriod(vacationYear);
 
   // Round employment start to beginning of month (if you start mid-month, you still get that month's days)
   const employmentStartMonthStart = format(startOfMonth(parseISO(employmentStartDate)), 'yyyy-MM-dd');
@@ -140,22 +140,22 @@ function earnedInFerieaar(
 }
 
 /**
- * Compute extra days for a specific ferieår at a given date.
- * Extra days are granted in the configured month if it falls within the ferieår's obtain period.
+ * Compute extra days for a specific vacation year at a given date.
+ * Extra days are granted in the configured month if it falls within the vacation year's obtain period.
  */
-function extraInFerieaar(
-  ferieaar: number,
+function extraInVacationYear(
+  vacationYear: number,
   atDate: string,
   employmentStartDate: string,
   extraDaysMonth: number,
   extraDaysCount: number
 ): number {
-  const obtain = obtainPeriod(ferieaar);
+  const obtain = obtainPeriod(vacationYear);
   const effectiveStart = obtain.start > employmentStartDate ? obtain.start : employmentStartDate;
 
   // Check each calendar year that overlaps with the obtain period
   let total = 0;
-  for (const y of [ferieaar, ferieaar + 1]) {
+  for (const y of [vacationYear, vacationYear + 1]) {
     const extraDateStr = `${y}-${String(extraDaysMonth).padStart(2, '0')}-01`;
     if (extraDateStr >= effectiveStart && extraDateStr <= obtain.end && extraDateStr <= atDate) {
       total += extraDaysCount;
@@ -165,10 +165,10 @@ function extraInFerieaar(
 }
 
 /**
- * Compute per-ferieår balances at a given date.
- * Allocates used days to the earliest available (non-expired) ferieår first.
+ * Compute per-vacation-year balances at a given date.
+ * Allocates used days to the earliest available (non-expired) vacation year first.
  */
-export function getFerieaarBalances(
+export function getVacationYearBalances(
   startDate: string,
   initialDays: number,
   extraDaysMonth: number,
@@ -177,20 +177,20 @@ export function getFerieaarBalances(
   enabledHolidays: Record<string, boolean>,
   atDate: string,
   maxTransferDays: number = 5
-): FerieaarBalance[] {
-  // Determine range of ferieår to consider
-  const startFerieaar = getFerieaarForDate(startDate);
-  const endFerieaar = getFerieaarForDate(atDate);
-  // Also include the ferieår before endFerieaar if its usable period hasn't ended
-  const ferieaarYears: number[] = [];
-  for (let y = startFerieaar; y <= endFerieaar; y++) {
-    ferieaarYears.push(y);
+): VacationYearBalance[] {
+  // Determine range of vacation years to consider
+  const startVacationYear = getVacationYearForDate(startDate);
+  const endVacationYear = getVacationYearForDate(atDate);
+  // Also include the vacation year before endVacationYear if its usable period hasn't ended
+  const vacationYears: number[] = [];
+  for (let y = startVacationYear; y <= endVacationYear; y++) {
+    vacationYears.push(y);
   }
 
   // Build balance objects
-  const balances: FerieaarBalance[] = ferieaarYears.map((year) => {
-    const earned = earnedInFerieaar(year, atDate, startDate);
-    const extra = extraInFerieaar(year, atDate, startDate, extraDaysMonth, extraDaysCount);
+  const balances: VacationYearBalance[] = vacationYears.map((year) => {
+    const earned = earnedInVacationYear(year, atDate, startDate);
+    const extra = extraInVacationYear(year, atDate, startDate, extraDaysMonth, extraDaysCount);
     const expEnd = usablePeriodEnd(year);
     const expired = atDate > expEnd;
 
@@ -206,7 +206,7 @@ export function getFerieaarBalances(
     };
   });
 
-  // Add initial days to the earliest ferieår
+  // Add initial days to the earliest vacation year
   if (balances.length > 0) {
     balances[0].balance += initialDays;
   }
@@ -244,7 +244,7 @@ export function getFerieaarBalances(
     if (i === 0) b.balance += initialDays;
   }
 
-  // Step 3: Process transfers from expired ferieår to the next one
+  // Step 3: Process transfers from expired vacation year to the next one
   for (let i = 0; i < balances.length - 1; i++) {
     const b = balances[i];
     if (b.expired && b.balance > 0) {
@@ -259,9 +259,9 @@ export function getFerieaarBalances(
 }
 
 /**
- * Get total balance across all active (non-expired) ferieår.
+ * Get total balance across all active (non-expired) vacation years.
  */
-export function getTotalBalance(balances: FerieaarBalance[]): number {
+export function getTotalBalance(balances: VacationYearBalance[]): number {
   return balances
     .filter((b) => !b.expired)
     .reduce((sum, b) => sum + b.balance - b.used, 0);
@@ -303,8 +303,8 @@ export function computeAllStatuses(
     }
 
     if (selectedSet.has(dateStr)) {
-      // Use per-ferieår balances to determine status
-      const balances = getFerieaarBalances(
+      // Use per-vacation-year balances to determine status
+      const balances = getVacationYearBalances(
         startDate, initialDays, extraDaysMonth, extraDaysCount,
         sortedSelected, enabledHolidays, dateStr, maxTransferDays
       );

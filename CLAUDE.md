@@ -63,7 +63,7 @@ src/
 │   ├── vacationCalculations.ts  # Balance logic, day status determination
 │   └── vacationCalculations.test.ts  # Vitest tests for vacation calculations
 ├── types/
-│   └── index.ts           # Holiday, DefaultData, VacationState, YearRange, DayStatus, FerieaarBalance
+│   └── index.ts           # Holiday, DefaultData, VacationState, YearRange, DayStatus, VacationYearBalance
 ├── main.tsx
 └── index.css              # Tailwind imports + CSS variables (light theme only)
 public/
@@ -86,12 +86,12 @@ interface VacationState {
   maxTransferDays: number;        // max days transferable between ferieår, default: 5
 }
 
-interface FerieaarBalance {
-  year: number;        // ferieår start year (e.g. 2025 = Sep 2025 → Aug 2026, usable until Dec 2026)
-  earned: number;      // days earned so far in this ferieår
-  extra: number;       // extra days granted in this ferieår
-  used: number;        // days consumed from this ferieår
-  transferred: number; // days transferred from previous expired ferieår (capped by maxTransferDays)
+interface VacationYearBalance {
+  year: number;        // vacation year start year (e.g. 2025 = Sep 2025 → Aug 2026, usable until Dec 2026)
+  earned: number;      // days earned so far in this vacation year
+  extra: number;       // extra days granted in this vacation year
+  used: number;        // days consumed from this vacation year
+  transferred: number; // days transferred from previous expired vacation year (capped by maxTransferDays)
   balance: number;     // earned + extra + transferred - used
   lost: number;        // days lost at expiry (excess beyond transferable limit)
   expired: boolean;    // true if atDate > Dec 31 of year+1
@@ -115,7 +115,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 5. `initialVacationDays` are added to the earliest ferieår's balance
 6. A selected day is **green** if total active balance ≥ 0; **yellow** if < 0 but ≥ −advanceDays (forskudsferie); **red** if < −advanceDays (overdrawn)
 
-A legacy `getBalance()` function still exists for backward compatibility but the per-ferieår system (`getFerieaarBalances`) is used for day status computation.
+A legacy `getBalance()` function still exists for backward compatibility but the per-vacation-year system (`getVacationYearBalances`) is used for day status computation.
 
 ## Day Status Colors
 

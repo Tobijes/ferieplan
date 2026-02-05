@@ -2,24 +2,24 @@ import { useMemo, Fragment } from 'react';
 import { generateMonths } from '@/lib/dateUtils';
 import { useVacation } from '@/context/VacationContext';
 import { CalendarMonth } from './CalendarMonth';
-import { getFerieaarBalances } from '@/lib/vacationCalculations';
+import { getVacationYearBalances } from '@/lib/vacationCalculations';
 
 function YearSeparator({ year }: { year: number }) {
   const { state } = useVacation();
 
-  // Ferieår that expires Dec 31 of this year is ferieår (year - 1)
-  const expiringFerieaar = year - 1;
-  const balances = getFerieaarBalances(
+  // Vacation year that expires Dec 31 of this year is vacation year (year - 1)
+  const expiringVacationYear = year - 1;
+  const balances = getVacationYearBalances(
     state.startDate, state.initialVacationDays, state.extraDaysMonth,
     state.extraDaysCount, state.selectedDates, state.enabledHolidays,
     `${year + 1}-01-01`, state.maxTransferDays
   );
-  const expiring = balances.find((b) => b.year === expiringFerieaar && b.expired);
+  const expiring = balances.find((b) => b.year === expiringVacationYear && b.expired);
   const lostDays = expiring?.lost ?? 0;
 
-  // Find next ferieår to get actual transferred amount
-  const nextFerieaar = balances.find((b) => b.year === expiringFerieaar + 1);
-  const actualTransferred = nextFerieaar?.transferred ?? 0;
+  // Find next vacation year to get actual transferred amount
+  const nextVacationYear = balances.find((b) => b.year === expiringVacationYear + 1);
+  const actualTransferred = nextVacationYear?.transferred ?? 0;
 
   let separatorText: React.ReactNode;
   if (actualTransferred === 0 && lostDays === 0) {

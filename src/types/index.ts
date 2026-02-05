@@ -29,12 +29,12 @@ export interface VacationState {
   maxTransferDays: number;
 }
 
-export interface FerieaarBalance {
-  year: number;        // ferieår start year (e.g. 2025 = Sep 2025 → Aug 2026, usable until Dec 2026)
-  earned: number;      // days earned so far in this ferieår
-  extra: number;       // extra days granted in this ferieår
-  used: number;        // days consumed from this ferieår
-  transferred: number; // days transferred from previous expired ferieår (max 5)
+export interface VacationYearBalance {
+  year: number;        // vacation year start year (e.g. 2025 = Sep 2025 → Aug 2026, usable until Dec 2026)
+  earned: number;      // days earned so far in this vacation year
+  extra: number;       // extra days granted in this vacation year
+  used: number;        // days consumed from this vacation year
+  transferred: number; // days transferred from previous expired vacation year (max 5)
   balance: number;     // earned + extra + transferred - used
   lost: number;        // days lost at expiry (excess beyond 5 transferable)
   expired: boolean;    // true if atDate > Dec 31 of year+1
