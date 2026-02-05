@@ -108,7 +108,7 @@ interface Holiday {
 
 Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Year N → Aug 31 Year N+1 (obtain period), and days are usable Sep 1 Year N → Dec 31 Year N+1.
 
-1. Per ferieår, each elapsed month within the obtain period earns 2.08 days
+1. Per ferieår, each month within the obtain period earns 2.08 days (credited at start of month, usable from day 1; if employment starts mid-month, the full month is still credited)
 2. Extra days (`extraDaysCount`) are added when the configured `extraDaysMonth` falls within the obtain period
 3. Used days (selected dates excluding holidays) are allocated to the earliest non-expired ferieår with remaining balance
 4. When a ferieår expires, up to `maxTransferDays` (default 5) surplus days transfer to the next ferieår; the rest are lost

@@ -121,23 +121,29 @@ describe('computeAllStatuses', () => {
   });
 
   it('marks selected days as overdrawn when no balance and no advance', () => {
+    // With startDate Jan 1, Jan has 2.08 days available. Select 3 days to exceed balance.
+    const selected = ['2026-01-05', '2026-01-06', '2026-01-07'];
     const result = computeAllStatuses(
-      ['2026-01-05'],
-      ['2026-01-05'],
+      selected,
+      selected,
       {},
       '2026-01-01', 0, 5, 5, 0
     );
-    expect(result['2026-01-05']).toBe('selected-overdrawn');
+    // 3rd day: balance = 2.08 - 3 = -0.92 → overdrawn
+    expect(result['2026-01-07']).toBe('selected-overdrawn');
   });
 
   it('marks selected days as warning when within advance days', () => {
+    // With startDate Jan 1, Jan has 2.08 days. Select 3 days, 3rd is in advance.
+    const selected = ['2026-01-05', '2026-01-06', '2026-01-07'];
     const result = computeAllStatuses(
-      ['2026-01-05'],
-      ['2026-01-05'],
+      selected,
+      selected,
       {},
       '2026-01-01', 0, 5, 5, 5
     );
-    expect(result['2026-01-05']).toBe('selected-warning');
+    // 3rd day: balance = 2.08 - 3 = -0.92, within advance (5) → warning
+    expect(result['2026-01-07']).toBe('selected-warning');
   });
 
   it('marks normal weekdays', () => {
@@ -165,13 +171,13 @@ describe('getFerieaarForDate', () => {
 
 describe('getFerieaarBalances', () => {
   it('single ferieår: basic accrual', () => {
-    // Start Sep 2025, check at Jan 2026 = 4 months elapsed in ferieår 2025
+    // Start Sep 2025, check at Jan 2026 = 5 months available (Sep-Jan, days credited at start of month)
     const balances = getFerieaarBalances(
       '2025-09-01', 0, 5, 5, [], {}, '2026-01-01'
     );
     expect(balances).toHaveLength(1);
     expect(balances[0].year).toBe(2025);
-    expect(balances[0].earned).toBeCloseTo(8.32); // 4 months × 2.08
+    expect(balances[0].earned).toBeCloseTo(10.4); // 5 months × 2.08 (Sep, Oct, Nov, Dec, Jan)
     expect(balances[0].used).toBe(0);
     expect(balances[0].expired).toBe(false);
   });
@@ -180,7 +186,7 @@ describe('getFerieaarBalances', () => {
     const balances = getFerieaarBalances(
       '2025-09-01', 10, 5, 5, [], {}, '2026-01-01'
     );
-    expect(balances[0].balance).toBeCloseTo(10 + 8.32);
+    expect(balances[0].balance).toBeCloseTo(10 + 10.4); // 5 months × 2.08
   });
 
   it('allocates used days to earliest ferieår first', () => {
@@ -253,46 +259,49 @@ describe('getFerieaarBalances', () => {
   });
 
   it('advance days: overdrawn status works with per-ferieår model', () => {
+    // Select 3 days when only 2.08 available → 3rd day overdrawn
+    const selected = ['2026-01-05', '2026-01-06', '2026-01-07'];
     const result = computeAllStatuses(
-      ['2026-01-05'],
-      ['2026-01-05'],
+      selected,
+      selected,
       {},
       '2026-01-01', 0, 5, 5, 0
     );
-    expect(result['2026-01-05']).toBe('selected-overdrawn');
+    expect(result['2026-01-07']).toBe('selected-overdrawn');
   });
 
   it('advance days: NaN advanceDays treated as 0', () => {
-    const selected = ['2026-02-02'];
+    // Select 3 days when only 2.08 available
+    const selected = ['2026-02-02', '2026-02-03', '2026-02-04'];
     const rNaN = computeAllStatuses(selected, selected, {}, '2026-02-01', 0, 5, 5, NaN);
-    // NaN comparison: -1 >= NaN is false → should be overdrawn
-    expect(rNaN['2026-02-02']).toBe('selected-overdrawn');
+    // NaN comparison: -0.92 >= NaN is false → should be overdrawn
+    expect(rNaN['2026-02-04']).toBe('selected-overdrawn');
   });
 
   it('advance days: realistic scenario with startDate today', () => {
-    // Simulate user starting Feb 2026, selecting many days in Feb that exceed balance
-    // Ferieår 2025: earned from Feb to Feb = 0 months = 0 days
-    // With initialDays=0 and 1 selected day, balance = -1
-    const selected = ['2026-02-02'];
+    // Simulate user starting Feb 2026, selecting 3 days in Feb
+    // Ferieår 2025: Feb has 2.08 days available (credited at start of month)
+    // Select 3 days → 3rd day is overdrawn
+    const selected = ['2026-02-02', '2026-02-03', '2026-02-04'];
     const r0 = computeAllStatuses(selected, selected, {}, '2026-02-01', 0, 5, 5, 0);
-    expect(r0['2026-02-02']).toBe('selected-overdrawn');
+    expect(r0['2026-02-04']).toBe('selected-overdrawn');
 
     const r5 = computeAllStatuses(selected, selected, {}, '2026-02-01', 0, 5, 5, 5);
-    expect(r5['2026-02-02']).toBe('selected-warning');
+    expect(r5['2026-02-04']).toBe('selected-warning');
   });
 
   it('advance days: changing forskudsferie turns overdrawn into warning', () => {
-    // Start Feb 2026, select 5 days in Mar. Earned by Mar = 1 month × 2.08 = 2.08
-    // After 3rd day used, balance = 2.08 - 3 = -0.92 → overdrawn with advanceDays=0
+    // Start Feb 2026, select 5 days in Mar. By Mar: Feb + Mar = 2 months × 2.08 = 4.16 days
+    // After 5th day used, balance = 4.16 - 5 = -0.84 → overdrawn with advanceDays=0
     const selected = ['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05', '2026-03-06'];
     const allDates = selected;
 
     const r0 = computeAllStatuses(allDates, selected, {}, '2026-02-01', 0, 5, 5, 0);
-    // 3rd day: balance = 2.08 - 3 = -0.92 → overdrawn
-    expect(r0['2026-03-04']).toBe('selected-overdrawn');
+    // 5th day: balance = 4.16 - 5 = -0.84 → overdrawn
+    expect(r0['2026-03-06']).toBe('selected-overdrawn');
 
     const r5 = computeAllStatuses(allDates, selected, {}, '2026-02-01', 0, 5, 5, 5);
-    // Same scenario but advance=5, so -0.92 >= -5 → warning
-    expect(r5['2026-03-04']).toBe('selected-warning');
+    // Same scenario but advance=5, so -0.84 >= -5 → warning
+    expect(r5['2026-03-06']).toBe('selected-warning');
   });
 });

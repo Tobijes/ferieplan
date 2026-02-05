@@ -39,7 +39,7 @@ function MonthHeader({ month }: { month: Date }) {
   const year = month.getFullYear();
   const monthName = format(month, 'MMMM', { locale: da });
 
-  // Calculate balances at end of month
+  // Calculate balances at end of month (earnedInFerieaar now credits days from start of month)
   const endOfMonthDate = toISODate(endOfMonth(month));
   const balances = getFerieaarBalances(
     state.startDate, state.initialVacationDays, state.extraDaysMonth,

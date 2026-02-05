@@ -4,6 +4,9 @@ import {
   isWeekend,
   isBefore,
   isEqual,
+  startOfMonth,
+  addMonths,
+  format,
 } from 'date-fns';
 import type { DayStatus, FerieaarBalance } from '@/types';
 
@@ -104,7 +107,8 @@ function usablePeriodEnd(ferieaar: number): string {
 
 /**
  * Compute earned days for a specific ferieår at a given date.
- * Only counts months within the obtain period that have elapsed by atDate.
+ * Days are credited at the start of each month (usable from day 1 of the month).
+ * If employment starts mid-month, the full month's days are still credited.
  */
 function earnedInFerieaar(
   ferieaar: number,
@@ -112,10 +116,19 @@ function earnedInFerieaar(
   employmentStartDate: string
 ): number {
   const obtain = obtainPeriod(ferieaar);
-  // Effective start is the later of obtain period start and employment start
-  const effectiveStart = obtain.start > employmentStartDate ? obtain.start : employmentStartDate;
-  // Effective end is the earlier of obtain period end and atDate
-  const effectiveEnd = obtain.end < atDate ? obtain.end : atDate;
+
+  // Round employment start to beginning of month (if you start mid-month, you still get that month's days)
+  const employmentStartMonthStart = format(startOfMonth(parseISO(employmentStartDate)), 'yyyy-MM-dd');
+
+  // Effective start is the later of obtain period start and employment start month
+  const effectiveStart = obtain.start > employmentStartMonthStart ? obtain.start : employmentStartMonthStart;
+
+  // Calculate to start of next month after atDate, so days are usable from the start of each month
+  const atDateParsed = parseISO(atDate);
+  const nextMonthStart = format(addMonths(startOfMonth(atDateParsed), 1), 'yyyy-MM-dd');
+
+  // Effective end is the earlier of obtain period end and next month start
+  const effectiveEnd = obtain.end < nextMonthStart ? obtain.end : nextMonthStart;
 
   if (effectiveStart > effectiveEnd) return 0;
 
