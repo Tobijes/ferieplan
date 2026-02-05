@@ -48,9 +48,9 @@ src/
 │   ├── App.tsx            # Root: VacationProvider + TooltipProvider + 2-column layout
 │   ├── HelpIcon.tsx       # Reusable "?" popover icon (click-to-open, click-outside-to-close) using lucide-react CircleHelp
 │   ├── ConfigPane.tsx     # Left pane: settings, holiday toggles (accordion by year), data management (reset)
-│   ├── CalendarView.tsx   # Right pane: scrollable grid of months based on yearRange
-│   ├── CalendarMonth.tsx  # Single month: header + 7-col day grid (Mon–Sun)
-│   └── CalendarDay.tsx    # Day cell: colored circle + tooltip on hover
+│   ├── CalendarView.tsx   # Right pane: scrollable grid of months based on yearRange, year separators
+│   ├── CalendarMonth.tsx  # Single month: header with ferieår balances + 7-col day grid (Mon–Sun)
+│   └── CalendarDay.tsx    # Day cell: colored circle (no tooltips)
 ├── context/
 │   └── VacationContext.tsx # Global state with localStorage persistence
 ├── hooks/
@@ -134,17 +134,16 @@ A legacy `getBalance()` function still exists for backward compatibility but the
 - All 4 ConfigPane cards are collapsible with a chevron icon in the header. Click the header to toggle collapse/expand. Default states: desktop (lg+) all expanded, mobile only first card ("Optjent ferie") expanded.
 - Each config field in the settings card has a `HelpIcon` (CircleHelp from lucide-react) placed to the right of the input element. Click opens a Popover with a Danish description; click outside dismisses (touch-friendly, no hover required).
 - Dates before `startDate` are disabled and not selectable (status `before-start`)
-- Each month header shows per-ferieår balance summaries for active ferieår
-- All dates have tooltips on hover showing full Danish date, status reason, and current vacation balance (Saldo)
+- Month headers show ferieår balances with format "YY/(YY+1): X.XX" (e.g., "25/26: 3.40"). Year label is gray, balance is green. For months Jan-Aug only the active ferieår is shown on the left. For Sep-Dec both ferieår are shown (ending year on left, new year on right).
+- Year separators appear after December months spanning the full grid width with three states: (1) "Ingen feriedage overføres til næste ferieår" if balance is 0, (2) "X.XX feriedage overføres til næste ferieår" if within transfer limit, (3) "X.XX feriedage overføres til næste ferieår, Y.YY feriedage overføres ikke" if exceeding limit (Y.YY in bold red). All text is gray except the lost amount.
 - Holidays in config pane show date tooltip on hover and highlight the corresponding calendar day with a blue ring
 - Holidays are grouped by year in an accordion, filtered to only show years visible in the calendar
 - Calendar view has `max-w-5xl` to prevent stretching on wide monitors
 - Year range selector: "Indeværende år" (12 months) or "Indeværende + næste år" (24 months)
 - State survives page refresh via localStorage
-- `holidayNames` map is derived via `useMemo` from `state.holidays` for tooltip lookups
+- `holidayNames` map is derived via `useMemo` from `state.holidays` for holiday name lookups
 - `dayStatuses` map is precomputed via `useMemo` in the context (`computeAllStatuses`) for all visible days in a single pass, avoiding per-cell `getDayStatus` calls
 - `CalendarDay` and `CalendarMonth` are wrapped in `React.memo` to skip re-renders when props (primitive strings) haven't changed
-- Tooltip content (`TooltipBody`) is rendered lazily inside `TooltipContent`, so balance computation only runs on hover
 - Holiday highlight ring uses a DOM-based approach (not React state) for performance: `setHighlightedDate` toggles a `data-highlighted` attribute on `[data-date]` buttons via `calendarRef`, styled with Tailwind `data-[highlighted=true]:ring-*` selectors. This avoids re-rendering all CalendarDay components on hover.
 - Holiday labels in ConfigPane are clickable to toggle the holiday (same as the switch)
 - "Ryd alting" button in the Data card resets state in-place via `resetState()` (no page reload). After reset, `initDefaults` re-seeds holidays from `default.json` on next render.

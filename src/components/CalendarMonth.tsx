@@ -4,8 +4,10 @@ import {
   endOfMonth,
   eachDayOfInterval,
   getDay,
+  format,
 } from 'date-fns';
-import { formatMonthYear, DA_DAY_NAMES, toISODate } from '@/lib/dateUtils';
+import { da } from 'date-fns/locale';
+import { DA_DAY_NAMES, toISODate } from '@/lib/dateUtils';
 import { getFerieaarBalances } from '@/lib/vacationCalculations';
 import { useVacation } from '@/context/VacationContext';
 import { CalendarDay } from './CalendarDay';
@@ -16,20 +18,65 @@ interface CalendarMonthProps {
   dayStatuses: Record<string, DayStatus>;
 }
 
-function DecemberExpirySubtitle({ year }: { year: number }) {
+function formatFerieaarLabel(year: number): string {
+  const y1 = year % 100;
+  const y2 = (year + 1) % 100;
+  return `${y1.toString().padStart(2, '0')}/${y2.toString().padStart(2, '0')}`;
+}
+
+function FerieaarBadge({ year, balance }: { year: number; balance: number }) {
+  return (
+    <span className="text-xs whitespace-nowrap">
+      <span className="text-muted-foreground">{formatFerieaarLabel(year)}:</span>{' '}
+      <span className="text-green-600 font-medium">{balance.toFixed(2)}</span>
+    </span>
+  );
+}
+
+function MonthHeader({ month }: { month: Date }) {
   const { state } = useVacation();
-  // Ferieår that expires Dec 31 of this year is ferieår (year - 1)
-  const expiringFerieaar = year - 1;
+  const monthNum = month.getMonth(); // 0-indexed
+  const year = month.getFullYear();
+  const monthName = format(month, 'MMMM', { locale: da });
+
+  // Calculate balances at end of month
+  const endOfMonthDate = toISODate(endOfMonth(month));
   const balances = getFerieaarBalances(
     state.startDate, state.initialVacationDays, state.extraDaysMonth,
     state.extraDaysCount, state.selectedDates, state.enabledHolidays,
-    `${year + 1}-01-01`, state.maxTransferDays
+    endOfMonthDate, state.maxTransferDays
   );
-  const expiring = balances.find((b) => b.year === expiringFerieaar && b.expired);
-  if (!expiring || expiring.lost <= 0) return null;
+
+  // Determine active ferieår(s) for this month
+  // Jan-Aug (0-7): Only ferieår (year - 1) is active
+  // Sep-Dec (8-11): Both ferieår (year - 1) and ferieår (year) are active
+  const isSepToDec = monthNum >= 8;
+
+  const leftFerieaar = isSepToDec ? year - 1 : year - 1;
+  const rightFerieaar = isSepToDec ? year : null;
+
+  const leftBalance = balances.find(b => b.year === leftFerieaar && !b.expired);
+  const rightBalance = rightFerieaar ? balances.find(b => b.year === rightFerieaar && !b.expired) : null;
+
   return (
-    <div className="text-xs text-red-600 text-center">
-      {expiring.lost.toFixed(2)} feriedage overføres ikke
+    <div className="flex items-center justify-between mb-1 gap-1">
+      <div className="flex-1 min-w-0">
+        {leftBalance ? (
+          <FerieaarBadge year={leftBalance.year} balance={leftBalance.balance} />
+        ) : (
+          <span className="text-xs text-transparent">--/--: 0.00</span>
+        )}
+      </div>
+      <h3 className="text-sm font-semibold text-center flex-shrink-0 capitalize">
+        {monthName}
+      </h3>
+      <div className="flex-1 min-w-0 text-right">
+        {rightBalance ? (
+          <FerieaarBadge year={rightBalance.year} balance={rightBalance.balance} />
+        ) : (
+          <span className="text-xs text-transparent">--/--: 0.00</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -42,14 +89,10 @@ export const CalendarMonth = memo(function CalendarMonth({ month, dayStatuses }:
   }, [month]);
 
   const startOffset = (getDay(startOfMonth(month)) + 6) % 7;
-  const isDecember = month.getMonth() === 11;
 
   return (
     <div className="p-2">
-      <h3 className="text-sm font-semibold mb-1 text-center">
-        {formatMonthYear(month)}
-      </h3>
-      {isDecember && <DecemberExpirySubtitle year={month.getFullYear()} />}
+      <MonthHeader month={month} />
       <div className="grid grid-cols-7 gap-x-3 gap-y-1.5">
         {DA_DAY_NAMES.map((name) => (
           <div

@@ -1,14 +1,6 @@
 import { memo, useCallback } from 'react';
 import { useVacation } from '@/context/VacationContext';
-import { getFerieaarBalances } from '@/lib/vacationCalculations';
 import { cn } from '@/lib/utils';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { format } from 'date-fns';
-import { da } from 'date-fns/locale';
 import type { DayStatus } from '@/types';
 
 interface CalendarDayProps {
@@ -27,42 +19,6 @@ const statusClasses: Record<string, string> = {
   'before-start': 'opacity-30 cursor-default',
 };
 
-function BalanceLines({ dateStr }: { dateStr: string }) {
-  const { state } = useVacation();
-  const balances = getFerieaarBalances(
-    state.startDate, state.initialVacationDays, state.extraDaysMonth,
-    state.extraDaysCount, state.selectedDates, state.enabledHolidays, dateStr, state.maxTransferDays
-  );
-  const visible = balances.filter((b) => !b.expired && (b.earned + b.extra + b.transferred > 0 || b.balance !== 0));
-  return (
-    <>
-      {visible.map((b) => (
-        <span key={b.year}>{'\n'}Ferieåret {b.year}: {b.balance.toFixed(2)}</span>
-      ))}
-    </>
-  );
-}
-
-function TooltipBody({ dateStr, status }: { dateStr: string; status: DayStatus }) {
-  const { holidayNames } = useVacation();
-  const dateLabel = format(new Date(dateStr + 'T00:00:00'), 'EEEE d. MMMM yyyy', { locale: da });
-
-  switch (status) {
-    case 'holiday':
-      return <>{dateLabel}{'\n'}{holidayNames[dateStr] ?? 'Helligdag'}<BalanceLines dateStr={dateStr} /></>;
-    case 'weekend':
-      return <>{dateLabel}{'\n'}Weekend<BalanceLines dateStr={dateStr} /></>;
-    case 'selected-ok':
-      return <>{dateLabel}{'\n'}Feriedag<BalanceLines dateStr={dateStr} /></>;
-    case 'selected-warning':
-      return <>{dateLabel}{'\n'}Feriedag – forskudsferie<BalanceLines dateStr={dateStr} /></>;
-    case 'selected-overdrawn':
-      return <>{dateLabel}{'\n'}Feriedag – ikke nok dage!<BalanceLines dateStr={dateStr} /></>;
-    default:
-      return <>{dateLabel}<BalanceLines dateStr={dateStr} /></>;
-  }
-}
-
 export const CalendarDay = memo(function CalendarDay({ dateStr, dayOfMonth, status }: CalendarDayProps) {
   const { toggleDate } = useVacation();
   const isDisabled = status === 'holiday' || status === 'before-start';
@@ -72,7 +28,7 @@ export const CalendarDay = memo(function CalendarDay({ dateStr, dayOfMonth, stat
     toggleDate(dateStr);
   }, [isDisabled, toggleDate, dateStr]);
 
-  const button = (
+  return (
     <button
       data-date={dateStr}
       onClick={handleClick}
@@ -85,18 +41,5 @@ export const CalendarDay = memo(function CalendarDay({ dateStr, dayOfMonth, stat
     >
       {dayOfMonth}
     </button>
-  );
-
-  if (status === 'before-start') return button;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        {button}
-      </TooltipTrigger>
-      <TooltipContent className="whitespace-pre-line text-xs">
-        <TooltipBody dateStr={dateStr} status={status} />
-      </TooltipContent>
-    </Tooltip>
   );
 });
