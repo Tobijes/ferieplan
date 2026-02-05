@@ -25,6 +25,7 @@ Danish vacation day planner — client-side React app with no backend.
 ## Tech Stack
 
 - Vite + React 19 + TypeScript (strict mode)
+- React Compiler (`babel-plugin-react-compiler`) for automatic memoization
 - Tailwind CSS v4 (via `@tailwindcss/vite` plugin) + shadcn/ui (new-york style)
 - date-fns with `da` locale for all date formatting
 - localStorage for state persistence
@@ -141,13 +142,13 @@ A legacy `getBalance()` function still exists for backward compatibility but the
 - Calendar view has `max-w-5xl` to prevent stretching on wide monitors
 - Year range selector: "Indeværende år" (12 months) or "Indeværende + næste år" (24 months)
 - State survives page refresh via localStorage
-- `holidayNames` map is derived via `useMemo` from `state.holidays` for holiday name lookups
-- `dayStatuses` map is precomputed via `useMemo` in the context (`computeAllStatuses`) for all visible days in a single pass, avoiding per-cell `getDayStatus` calls
-- `CalendarDay` and `CalendarMonth` are wrapped in `React.memo` to skip re-renders when props (primitive strings) haven't changed
+- `holidayNames` map is derived from `state.holidays` for holiday name lookups
+- `dayStatuses` map is precomputed in the context (`computeAllStatuses`) for all visible days in a single pass, avoiding per-cell `getDayStatus` calls
+- React Compiler automatically handles memoization (no manual `useMemo`, `useCallback`, or `React.memo` needed)
 - Holiday highlight ring uses a DOM-based approach (not React state) for performance: `setHighlightedDate` toggles a `data-highlighted` attribute on `[data-date]` buttons via `calendarRef`, styled with Tailwind `data-[highlighted=true]:ring-*` selectors. This avoids re-rendering all CalendarDay components on hover.
 - Holiday labels in ConfigPane are clickable to toggle the holiday (same as the switch)
 - "Ryd alting" button in the Data card resets state in-place via `resetState()` (no page reload). After reset, `initDefaults` re-seeds holidays from `default.json` on next render.
-- Context functions (`toggleDate`, `toggleHoliday`, `initDefaults`, `addHoliday`, `resetState`) are wrapped in `useCallback` to avoid infinite re-render loops
+- Context functions (`toggleDate`, `toggleHoliday`, `initDefaults`, `addHoliday`, `resetState`) have stable references (React Compiler handles this automatically)
 - Current year accordion is expanded by default; other years are collapsed
 - Users can add custom holidays via a "Tilføj helligdag" button (opens Popover with name field and native date picker) at the top of the Helligdage card content
 - Number inputs (Feriedage ved start, Ekstra feriedage, Forskudsferie) use `DeferredNumberInput` — local state while typing, commits to global state on blur/Enter. This avoids recomputing `dayStatuses` on every keystroke. All are clamped to 0–99.

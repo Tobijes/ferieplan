@@ -1,4 +1,3 @@
-import { memo, useMemo } from 'react';
 import {
   startOfMonth,
   endOfMonth,
@@ -81,14 +80,12 @@ function MonthHeader({ month }: { month: Date }) {
   );
 }
 
-export const CalendarMonth = memo(function CalendarMonth({ month, dayStatuses }: CalendarMonthProps) {
-  const days = useMemo(() => {
-    const start = startOfMonth(month);
-    const end = endOfMonth(month);
-    return eachDayOfInterval({ start, end });
-  }, [month]);
+export function CalendarMonth({ month, dayStatuses }: CalendarMonthProps) {
+  const start = startOfMonth(month);
+  const end = endOfMonth(month);
+  const days = eachDayOfInterval({ start, end });
 
-  const startOffset = (getDay(startOfMonth(month)) + 6) % 7;
+  const startOffset = (getDay(start) + 6) % 7;
 
   return (
     <div className="p-2">
@@ -119,4 +116,4 @@ export const CalendarMonth = memo(function CalendarMonth({ month, dayStatuses }:
       </div>
     </div>
   );
-});
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
+import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { useVacation, defaultState } from '@/context/VacationContext';
 import { useDefaults } from '@/hooks/useHolidays';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -92,18 +92,15 @@ export function ConfigPane() {
     }
   }, [defaults, initDefaults, state.holidays.length]);
 
-  const visibleYears = useMemo(() => getVisibleYears(state.yearRange), [state.yearRange]);
+  const visibleYears = getVisibleYears(state.yearRange);
 
-  const holidaysByYear = useMemo(() => {
-    const yearSet = new Set(visibleYears.map(String));
-    const grouped: Record<string, typeof state.holidays> = {};
-    for (const h of state.holidays) {
-      const year = h.date.slice(0, 4);
-      if (!yearSet.has(year)) continue;
-      (grouped[year] ??= []).push(h);
-    }
-    return grouped;
-  }, [state.holidays, visibleYears]);
+  const yearSet = new Set(visibleYears.map(String));
+  const holidaysByYear: Record<string, typeof state.holidays> = {};
+  for (const h of state.holidays) {
+    const year = h.date.slice(0, 4);
+    if (!yearSet.has(year)) continue;
+    (holidaysByYear[year] ??= []).push(h);
+  }
 
   const [newHolidayDate, setNewHolidayDate] = useState('');
   const [newHolidayName, setNewHolidayName] = useState('');

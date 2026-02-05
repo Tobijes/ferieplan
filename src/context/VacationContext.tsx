@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useRef, type ReactNode } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toISODate, generateMonths } from '@/lib/dateUtils';
 import { computeAllStatuses } from '@/lib/vacationCalculations';
@@ -41,15 +41,12 @@ export function VacationProvider({ children }: { children: ReactNode }) {
   );
   const calendarRef = useRef<HTMLDivElement | null>(null);
 
-  const holidayNames = useMemo(() => {
-    const names: Record<string, string> = {};
-    for (const h of state.holidays) {
-      names[h.date] = h.name;
-    }
-    return names;
-  }, [state.holidays]);
+  const holidayNames: Record<string, string> = {};
+  for (const h of state.holidays) {
+    holidayNames[h.date] = h.name;
+  }
 
-  const setHighlightedDate = useCallback((date: string | null) => {
+  const setHighlightedDate = (date: string | null) => {
     const container = calendarRef.current;
     if (!container) return;
     container.querySelectorAll('[data-highlighted="true"]').forEach((el) => {
@@ -58,18 +55,18 @@ export function VacationProvider({ children }: { children: ReactNode }) {
     if (date) {
       container.querySelector(`[data-date="${date}"]`)?.setAttribute('data-highlighted', 'true');
     }
-  }, []);
+  };
 
-  const toggleDate = useCallback((dateStr: string) => {
+  const toggleDate = (dateStr: string) => {
     setState((prev) => {
       const selected = prev.selectedDates.includes(dateStr)
         ? prev.selectedDates.filter((d) => d !== dateStr)
         : [...prev.selectedDates, dateStr].sort();
       return { ...prev, selectedDates: selected };
     });
-  }, [setState]);
+  };
 
-  const toggleHoliday = useCallback((dateStr: string) => {
+  const toggleHoliday = (dateStr: string) => {
     setState((prev) => ({
       ...prev,
       enabledHolidays: {
@@ -77,9 +74,9 @@ export function VacationProvider({ children }: { children: ReactNode }) {
         [dateStr]: !prev.enabledHolidays[dateStr],
       },
     }));
-  }, [setState]);
+  };
 
-  const initDefaults = useCallback((holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number) => {
+  const initDefaults = (holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number) => {
     setState((prev) => {
       if (prev.holidays.length > 0) return prev;
       const enabled: Record<string, boolean> = {};
@@ -88,43 +85,41 @@ export function VacationProvider({ children }: { children: ReactNode }) {
       }
       return { ...prev, holidays, enabledHolidays: enabled, extraDaysMonth: extraMonth, extraDaysCount: extraCount, advanceDays, maxTransferDays };
     });
-  }, [setState]);
+  };
 
-  const addHoliday = useCallback((date: string, name: string) => {
+  const addHoliday = (date: string, name: string) => {
     setState((prev) => ({
       ...prev,
       holidays: [...prev.holidays, { date, name, enabled: true }].sort((a, b) => a.date.localeCompare(b.date)),
       enabledHolidays: { ...prev.enabledHolidays, [date]: true },
     }));
-  }, [setState]);
+  };
 
-  const resetState = useCallback(() => {
+  const resetState = () => {
     setState({ ...defaultState, startDate: toISODate(new Date()) });
-  }, [setState]);
+  };
 
-  const dayStatuses = useMemo(() => {
-    const months = generateMonths(state.yearRange);
-    const allDates: string[] = [];
-    for (const m of months) {
-      const days = eachDayOfInterval({ start: startOfMonth(m), end: endOfMonth(m) });
-      for (const d of days) {
-        allDates.push(toISODate(d));
-      }
+  const months = generateMonths(state.yearRange);
+  const allDates: string[] = [];
+  for (const m of months) {
+    const days = eachDayOfInterval({ start: startOfMonth(m), end: endOfMonth(m) });
+    for (const d of days) {
+      allDates.push(toISODate(d));
     }
-    return computeAllStatuses(
-      allDates,
-      state.selectedDates,
-      state.enabledHolidays,
-      state.startDate,
-      state.initialVacationDays,
-      state.extraDaysMonth,
-      state.extraDaysCount,
-      state.advanceDays,
-      state.maxTransferDays
-    );
-  }, [state.yearRange, state.selectedDates, state.enabledHolidays, state.startDate, state.initialVacationDays, state.extraDaysMonth, state.extraDaysCount, state.advanceDays, state.maxTransferDays]);
+  }
+  const dayStatuses = computeAllStatuses(
+    allDates,
+    state.selectedDates,
+    state.enabledHolidays,
+    state.startDate,
+    state.initialVacationDays,
+    state.extraDaysMonth,
+    state.extraDaysCount,
+    state.advanceDays,
+    state.maxTransferDays
+  );
 
-  const value = useMemo(() => ({ state, setState, toggleDate, toggleHoliday, initDefaults, addHoliday, resetState, holidayNames, dayStatuses, setHighlightedDate, calendarRef }), [state, setState, toggleDate, toggleHoliday, initDefaults, addHoliday, resetState, holidayNames, dayStatuses, setHighlightedDate]);
+  const value = { state, setState, toggleDate, toggleHoliday, initDefaults, addHoliday, resetState, holidayNames, dayStatuses, setHighlightedDate, calendarRef };
 
   return (
     <VacationCtx.Provider value={value}>

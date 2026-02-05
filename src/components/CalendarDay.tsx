@@ -1,4 +1,3 @@
-import { memo, useCallback } from 'react';
 import { useVacation } from '@/context/VacationContext';
 import { cn } from '@/lib/utils';
 import type { DayStatus } from '@/types';
@@ -19,14 +18,14 @@ const statusClasses: Record<string, string> = {
   'before-start': 'opacity-30 cursor-default',
 };
 
-export const CalendarDay = memo(function CalendarDay({ dateStr, dayOfMonth, status }: CalendarDayProps) {
+export function CalendarDay({ dateStr, dayOfMonth, status }: CalendarDayProps) {
   const { toggleDate } = useVacation();
   const isDisabled = status === 'holiday' || status === 'before-start';
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     if (isDisabled) return;
     toggleDate(dateStr);
-  }, [isDisabled, toggleDate, dateStr]);
+  };
 
   return (
     <button
@@ -42,4 +41,4 @@ export const CalendarDay = memo(function CalendarDay({ dateStr, dayOfMonth, stat
       {dayOfMonth}
     </button>
   );
-});
+}
