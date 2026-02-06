@@ -1,5 +1,6 @@
 import { VacationProvider } from '@/context/VacationContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Toaster } from '@/components/ui/sonner';
 import { ConfigPane } from './ConfigPane';
 import { CalendarView } from './CalendarView';
 
@@ -16,6 +17,7 @@ export default function App() {
             <CalendarView />
           </div>
         </div>
+        <Toaster position="bottom-center" />
       </TooltipProvider>
     </VacationProvider>
   );

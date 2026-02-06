@@ -1,5 +1,8 @@
 import { useVacation } from '@/context/VacationContext';
 import { cn } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
+import { da } from 'date-fns/locale';
+import { toast } from 'sonner';
 import type { DayStatus } from '@/types';
 
 interface CalendarDayProps {
@@ -18,12 +21,29 @@ const statusClasses: Record<string, string> = {
   'before-start': 'opacity-30 cursor-default',
 };
 
+function formatHolidayDate(dateStr: string): string {
+  const date = parseISO(dateStr);
+  const formatted = format(date, "EEEE 'd.' d. MMMM", { locale: da });
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
 export function CalendarDay({ dateStr, dayOfMonth, status }: CalendarDayProps) {
-  const { toggleDate } = useVacation();
-  const isDisabled = status === 'holiday' || status === 'before-start';
+  const { toggleDate, holidayNames } = useVacation();
+  const isHoliday = status === 'holiday';
+  const isBeforeStart = status === 'before-start';
 
   const handleClick = () => {
-    if (isDisabled) return;
+    if (isBeforeStart) return;
+    if (isHoliday) {
+      const name = holidayNames[dateStr];
+      if (name) {
+        toast(name, {
+          description: formatHolidayDate(dateStr),
+          duration: 3000,
+        });
+      }
+      return;
+    }
     toggleDate(dateStr);
   };
 
@@ -31,11 +51,11 @@ export function CalendarDay({ dateStr, dayOfMonth, status }: CalendarDayProps) {
     <button
       data-date={dateStr}
       onClick={handleClick}
-      disabled={isDisabled}
+      disabled={isBeforeStart}
       className={cn(
         'w-8 h-8 rounded-full text-sm flex items-center justify-center transition-colors data-[highlighted=true]:ring-2 data-[highlighted=true]:ring-blue-500/60',
         statusClasses[status],
-        isDisabled ? 'cursor-default' : 'cursor-pointer',
+        isBeforeStart ? 'cursor-default' : 'cursor-pointer',
       )}
     >
       {dayOfMonth}
