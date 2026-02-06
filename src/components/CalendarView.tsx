@@ -25,21 +25,21 @@ function YearSeparator({ year }: { year: number }) {
   if (actualTransferred === 0 && lostDays === 0) {
     // Nothing to transfer
     separatorText = (
-      <span className="text-xs text-muted-foreground whitespace-nowrap">
+      <span className="text-xs text-muted-foreground text-center">
         Ingen feriedage overføres til næste ferieår
       </span>
     );
   } else if (lostDays === 0) {
     // Some days transferred, none lost
     separatorText = (
-      <span className="text-xs text-muted-foreground whitespace-nowrap">
+      <span className="text-xs text-muted-foreground text-center">
         {actualTransferred.toFixed(2)} feriedage overføres til næste ferieår
       </span>
     );
   } else {
     // Some days transferred, some lost
     separatorText = (
-      <span className="text-xs whitespace-nowrap">
+      <span className="text-xs text-center">
         <span className="text-muted-foreground">
           {actualTransferred.toFixed(2)} feriedage overføres til næste ferieår,{' '}
         </span>
@@ -50,10 +50,10 @@ function YearSeparator({ year }: { year: number }) {
   }
 
   return (
-    <div className="col-span-full flex items-center gap-2 py-4 text-muted-foreground">
-      <div className="flex-1 border-t border-muted-foreground/30" />
+    <div className="col-span-full flex items-center gap-2 px-4 py-4 text-muted-foreground">
+      <div className="shrink-0 flex-1 border-t border-muted-foreground/30" />
       {separatorText}
-      <div className="flex-1 border-t border-muted-foreground/30" />
+      <div className="shrink-0 flex-1 border-t border-muted-foreground/30" />
     </div>
   );
 }
