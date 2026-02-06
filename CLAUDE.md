@@ -116,7 +116,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 5. `initialVacationDays` are added to the earliest ferieår's balance
 6. A selected day is **green** if total active balance ≥ 0; **yellow** if < 0 but ≥ −advanceDays (forskudsferie); **red** if < −advanceDays (overdrawn)
 
-A legacy `getBalance()` function still exists for backward compatibility but the per-vacation-year system (`getVacationYearBalances`) is used for day status computation.
+`computeAllStatuses` uses an event timeline + single-pass algorithm: it pre-builds sorted earn/extra/expiry events, then merge-walks them with sorted selected dates maintaining per-vacation-year running state incrementally (O(D + S·V) instead of the previous O(S²·V) approach of calling `getVacationYearBalances` per selected date). `getVacationYearBalances` is still used by `CalendarMonth` and `CalendarView` for month-header and year-separator balance display.
 
 ## Day Status Colors
 

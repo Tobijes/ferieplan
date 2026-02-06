@@ -1,91 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
-  calculateEarnedDays,
-  calculateExtraDays,
-  countUsedDays,
-  getBalance,
   computeAllStatuses,
   getVacationYearBalances,
   getVacationYearForDate,
 } from './vacationCalculations';
-
-describe('calculateEarnedDays', () => {
-  it('returns 0 when target is before start', () => {
-    expect(calculateEarnedDays('2026-06-01', '2026-05-01')).toBe(0);
-  });
-
-  it('returns 0 when target equals start', () => {
-    expect(calculateEarnedDays('2026-06-01', '2026-06-01')).toBe(0);
-  });
-
-  it('earns 2.08 per month', () => {
-    expect(calculateEarnedDays('2026-01-01', '2026-04-01')).toBeCloseTo(6.24); // 3 months
-  });
-
-  it('earns 24.96 for a full year', () => {
-    expect(calculateEarnedDays('2026-01-01', '2027-01-01')).toBeCloseTo(24.96);
-  });
-});
-
-describe('calculateExtraDays', () => {
-  it('grants extra days when month is reached', () => {
-    // Extra in May (month 5), start Jan 2026, target Jun 2026
-    expect(calculateExtraDays('2026-01-01', '2026-06-01', 5, 5)).toBe(5);
-  });
-
-  it('does not grant extra days before the month', () => {
-    expect(calculateExtraDays('2026-01-01', '2026-04-01', 5, 5)).toBe(0);
-  });
-
-  it('grants extra days for multiple years', () => {
-    expect(calculateExtraDays('2026-01-01', '2027-06-01', 5, 5)).toBe(10);
-  });
-
-  it('does not grant if start is after extra month in same year', () => {
-    expect(calculateExtraDays('2026-06-01', '2026-12-01', 5, 5)).toBe(0);
-  });
-});
-
-describe('countUsedDays', () => {
-  it('counts selected dates up to target', () => {
-    const selected = ['2026-01-05', '2026-01-10', '2026-01-20'];
-    expect(countUsedDays(selected, {}, '2026-01-10')).toBe(2);
-  });
-
-  it('excludes enabled holidays', () => {
-    const selected = ['2026-01-05', '2026-01-10'];
-    const holidays = { '2026-01-05': true };
-    expect(countUsedDays(selected, holidays, '2026-01-10')).toBe(1);
-  });
-
-  it('returns 0 when no dates selected', () => {
-    expect(countUsedDays([], {}, '2026-01-10')).toBe(0);
-  });
-});
-
-describe('getBalance', () => {
-  it('returns initial days when no time elapsed and nothing used', () => {
-    expect(getBalance('2026-01-01', 10, 5, 5, [], {}, '2026-01-01')).toBe(10);
-  });
-
-  it('accrues days over time', () => {
-    const bal = getBalance('2026-01-01', 0, 5, 5, [], {}, '2026-04-01');
-    expect(bal).toBeCloseTo(6.24); // 3 months × 2.08
-  });
-
-  it('subtracts used days', () => {
-    const selected = ['2026-02-02', '2026-02-03'];
-    const bal = getBalance('2026-01-01', 10, 5, 5, selected, {}, '2026-03-01');
-    // 10 + 2*2.08 + 0 - 2 = 12.16
-    expect(bal).toBeCloseTo(12.16);
-  });
-
-  it('includes extra days when month is reached', () => {
-    const bal = getBalance('2026-01-01', 0, 5, 5, [], {}, '2026-06-01');
-    // 5*2.08 + 5 = 15.4
-    expect(bal).toBeCloseTo(15.4);
-  });
-});
 
 describe('computeAllStatuses', () => {
   it('marks holidays correctly', () => {

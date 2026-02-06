@@ -3,75 +3,11 @@ import {
   differenceInMonths,
   isWeekend,
   isBefore,
-  isEqual,
   startOfMonth,
   addMonths,
   format,
 } from 'date-fns';
 import type { DayStatus, VacationYearBalance } from '@/types';
-
-// --- Low-level helpers (exported for testing) ---
-
-export function calculateEarnedDays(
-  startDate: string,
-  targetDate: string
-): number {
-  const start = parseISO(startDate);
-  const target = parseISO(targetDate);
-  const months = differenceInMonths(target, start);
-  if (months <= 0) return 0;
-  return months * 2.08;
-}
-
-export function calculateExtraDays(
-  startDate: string,
-  targetDate: string,
-  extraDaysMonth: number,
-  extraDaysCount: number
-): number {
-  const start = parseISO(startDate);
-  const target = parseISO(targetDate);
-  let total = 0;
-  const startYear = start.getFullYear();
-  const targetYear = target.getFullYear();
-  for (let y = startYear; y <= targetYear; y++) {
-    const extraDate = new Date(y, extraDaysMonth - 1, 1);
-    if (extraDate >= start && extraDate <= target) {
-      total += extraDaysCount;
-    }
-  }
-  return total;
-}
-
-export function countUsedDays(
-  selectedDates: string[],
-  enabledHolidays: Record<string, boolean>,
-  upToDate: string
-): number {
-  const target = parseISO(upToDate);
-  return selectedDates.filter((d) => {
-    if (enabledHolidays[d]) return false;
-    const date = parseISO(d);
-    return isBefore(date, target) || isEqual(date, target);
-  }).length;
-}
-
-// --- Legacy single-balance function (kept for backward compat during transition) ---
-
-export function getBalance(
-  startDate: string,
-  initialDays: number,
-  extraDaysMonth: number,
-  extraDaysCount: number,
-  selectedDates: string[],
-  enabledHolidays: Record<string, boolean>,
-  atDate: string
-): number {
-  const earned = calculateEarnedDays(startDate, atDate);
-  const extra = calculateExtraDays(startDate, atDate, extraDaysMonth, extraDaysCount);
-  const used = countUsedDays(selectedDates, enabledHolidays, atDate);
-  return initialDays + earned + extra - used;
-}
 
 // --- Per-vacation-year balance system ---
 
@@ -258,17 +194,16 @@ export function getVacationYearBalances(
   return balances;
 }
 
-/**
- * Get total balance across all active (non-expired) vacation years.
- */
-export function getTotalBalance(balances: VacationYearBalance[]): number {
-  return balances
-    .filter((b) => !b.expired)
-    .reduce((sum, b) => sum + b.balance - b.used, 0);
-}
-
 // --- Status computation ---
 
+/**
+ * Compute day statuses for all calendar dates in a single pass.
+ *
+ * Instead of calling getVacationYearBalances per selected date (O(S²·V)),
+ * this builds a sorted event timeline (earn/extra/expiry events) and
+ * merge-walks it with sorted selected dates, maintaining per-vacation-year
+ * running state incrementally. Complexity: O(D + E·log E + S·V).
+ */
 export function computeAllStatuses(
   dates: string[],
   selectedDates: string[],
@@ -282,50 +217,153 @@ export function computeAllStatuses(
 ): Record<string, DayStatus> {
   const result: Record<string, DayStatus> = {};
   const selectedSet = new Set(selectedDates);
-  const sortedSelected = [...selectedDates].filter(d => !enabledHolidays[d]).sort();
 
+  // --- Phase 1: Classify dates that don't need balance computation ---
   for (const dateStr of dates) {
     if (dateStr < startDate) {
       result[dateStr] = 'before-start';
       continue;
     }
-
-    const date = parseISO(dateStr);
-
     if (enabledHolidays[dateStr]) {
       result[dateStr] = 'holiday';
       continue;
     }
+    if (selectedSet.has(dateStr)) continue; // deferred to Phase 3
+    result[dateStr] = isWeekend(parseISO(dateStr)) ? 'weekend' : 'normal';
+  }
 
-    if (isWeekend(date) && !selectedSet.has(dateStr)) {
-      result[dateStr] = 'weekend';
-      continue;
+  // --- Phase 2: Build event timeline ---
+  const sortedSelected = [...selectedDates].filter(d => !enabledHolidays[d]).sort();
+  if (sortedSelected.length === 0) return result;
+
+  const firstVacationYear = getVacationYearForDate(startDate);
+  const lastVacationYear = getVacationYearForDate(sortedSelected[sortedSelected.length - 1]);
+  const vacationYearCount = lastVacationYear - firstVacationYear + 1;
+
+  // Employment start rounded to month boundary (matches earnedInVacationYear)
+  const employmentMonthStart = format(
+    startOfMonth(parseISO(startDate)), 'yyyy-MM-dd'
+  );
+
+  // Event types: 0 = earn/extra (fire first at same date), 1 = expiry (fire after)
+  const events: Array<{ date: string; priority: number; yearIndex: number; kind: 'earn' | 'extra' | 'expiry' }> = [];
+
+  for (let i = 0; i < vacationYearCount; i++) {
+    const year = firstVacationYear + i;
+    const obtainStart = `${year}-09-01`;
+    const obtainEndStr = `${year + 1}-09-01`; // exclusive end for month counting
+
+    // Earn events: one per month-start in obtain period, after employment start
+    const effectiveEarnStart = obtainStart > employmentMonthStart
+      ? obtainStart : employmentMonthStart;
+    let cur = parseISO(effectiveEarnStart);
+    const obtainEndDate = parseISO(obtainEndStr);
+    while (isBefore(cur, obtainEndDate)) {
+      events.push({ date: format(cur, 'yyyy-MM-dd'), priority: 0, yearIndex: i, kind: 'earn' });
+      cur = addMonths(cur, 1);
     }
 
-    if (selectedSet.has(dateStr)) {
-      // Use per-vacation-year balances to determine status
-      const balances = getVacationYearBalances(
-        startDate, initialDays, extraDaysMonth, extraDaysCount,
-        sortedSelected, enabledHolidays, dateStr, maxTransferDays
-      );
-      const totalBalance = balances
-        .filter((b) => !b.expired)
-        .reduce((sum, b) => sum + b.balance, 0);
+    // Extra events: check both calendar years overlapping the obtain period
+    const effectiveExtraStart = obtainStart > startDate ? obtainStart : startDate;
+    for (const calendarYear of [year, year + 1]) {
+      const extraDateStr = `${calendarYear}-${String(extraDaysMonth).padStart(2, '0')}-01`;
+      if (extraDateStr >= effectiveExtraStart && extraDateStr <= obtainEndStr) {
+        events.push({ date: extraDateStr, priority: 0, yearIndex: i, kind: 'extra' });
+      }
+    }
 
+    // Expiry event: vacation year expires after Dec 31 of year+1
+    events.push({ date: `${year + 2}-01-01`, priority: 1, yearIndex: i, kind: 'expiry' });
+  }
+
+  // Sort by (date, priority) so earn/extra fire before expiry at the same date
+  events.sort((a, b) => {
+    const cmp = a.date.localeCompare(b.date);
+    return cmp !== 0 ? cmp : a.priority - b.priority;
+  });
+
+  // --- Phase 3: Merge-walk sorted selected dates with events ---
+  const vacationYears = Array.from({ length: vacationYearCount }, (_, i) => ({
+    earned: 0,
+    extra: 0,
+    used: 0,
+    transferred: 0,
+    expired: false,
+    usableEnd: `${firstVacationYear + i + 1}-12-31`,
+  }));
+
+  let eventIdx = 0;
+
+  for (const dateStr of sortedSelected) {
+    // Apply all events with date <= current selected date
+    while (eventIdx < events.length && events[eventIdx].date <= dateStr) {
+      const event = events[eventIdx];
+      const targetYear = vacationYears[event.yearIndex];
+      switch (event.kind) {
+        case 'earn':
+          targetYear.earned += 2.08;
+          break;
+        case 'extra':
+          targetYear.extra += extraDaysCount;
+          break;
+        case 'expiry': {
+          // Compute balance of expiring vacation year to determine transfer
+          const balance = targetYear.earned + targetYear.extra + targetYear.transferred - targetYear.used
+            + (event.yearIndex === 0 ? initialDays : 0);
+          targetYear.expired = true;
+          if (balance > 0 && event.yearIndex + 1 < vacationYearCount) {
+            vacationYears[event.yearIndex + 1].transferred = Math.min(balance, maxTransferDays);
+          }
+          break;
+        }
+      }
+      eventIdx++;
+    }
+
+    // Allocate 1 day to earliest usable vacation year with positive balance.
+    // Allocation uses earned+extra only (not transfers), matching the original
+    // algorithm where allocation happens before transfer processing.
+    let allocated = false;
+    for (let i = 0; i < vacationYearCount; i++) {
+      const vacationYear = vacationYears[i];
+      if (dateStr <= vacationYear.usableEnd) {
+        const allocBalance = vacationYear.earned + vacationYear.extra - vacationYear.used
+          + (i === 0 ? initialDays : 0);
+        if (allocBalance > 0) {
+          vacationYear.used += 1;
+          allocated = true;
+          break;
+        }
+      }
+    }
+    if (!allocated) {
+      // Fallback: latest usable vacation year (allows borrowing / negative balance)
+      for (let i = vacationYearCount - 1; i >= 0; i--) {
+        if (dateStr <= vacationYears[i].usableEnd) {
+          vacationYears[i].used += 1;
+          break;
+        }
+      }
+    }
+
+    // Compute total active balance (including transfers) for status
+    let totalBalance = 0;
+    for (let i = 0; i < vacationYearCount; i++) {
+      if (!vacationYears[i].expired) {
+        const vacationYear = vacationYears[i];
+        totalBalance += vacationYear.earned + vacationYear.extra + vacationYear.transferred - vacationYear.used
+          + (i === 0 ? initialDays : 0);
+      }
+    }
+
+    // Assign status only for dates not already classified in Phase 1
+    if (!(dateStr in result)) {
       result[dateStr] = totalBalance >= 0
         ? 'selected-ok'
         : totalBalance >= -advanceDays
           ? 'selected-warning'
           : 'selected-overdrawn';
-      continue;
     }
-
-    if (isWeekend(date)) {
-      result[dateStr] = 'weekend';
-      continue;
-    }
-
-    result[dateStr] = 'normal';
   }
 
   return result;
