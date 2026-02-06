@@ -2,7 +2,6 @@ import {
   parseISO,
   differenceInMonths,
   isWeekend,
-  isBefore,
   startOfMonth,
   addMonths,
   format,
@@ -194,73 +193,77 @@ export function getVacationYearBalances(
   return balances;
 }
 
-// --- Status computation ---
+// --- Status computation helpers ---
+
+export interface VacationYearState {
+  earned: number;
+  extra: number;
+  used: number;
+  transferred: number;
+  expired: boolean;
+  usableEnd: string;
+}
+
+export interface TimelineEvent {
+  date: string;
+  priority: number;    // 0 = earn/extra (applied first), 1 = expiry (applied after)
+  yearIndex: number;
+  kind: 'earn' | 'extra' | 'expiry';
+}
 
 /**
- * Compute day statuses for all calendar dates in a single pass.
- *
- * Instead of calling getVacationYearBalances per selected date (O(S²·V)),
- * this builds a sorted event timeline (earn/extra/expiry events) and
- * merge-walks it with sorted selected dates, maintaining per-vacation-year
- * running state incrementally. Complexity: O(D + E·log E + S·V).
+ * Classify dates that don't require balance computation:
+ * before-start, holidays, weekends, and normal weekdays.
+ * Selected dates are skipped (handled later by balance logic).
  */
-export function computeAllStatuses(
+export function classifyStaticDates(
   dates: string[],
-  selectedDates: string[],
-  enabledHolidays: Record<string, boolean>,
   startDate: string,
-  initialDays: number,
-  extraDaysMonth: number,
-  extraDaysCount: number,
-  advanceDays: number,
-  maxTransferDays: number = 5
+  enabledHolidays: Record<string, boolean>,
+  selectedSet: Set<string>
 ): Record<string, DayStatus> {
   const result: Record<string, DayStatus> = {};
-  const selectedSet = new Set(selectedDates);
-
-  // --- Phase 1: Classify dates that don't need balance computation ---
   for (const dateStr of dates) {
     if (dateStr < startDate) {
       result[dateStr] = 'before-start';
-      continue;
-    }
-    if (enabledHolidays[dateStr]) {
+    } else if (enabledHolidays[dateStr]) {
       result[dateStr] = 'holiday';
-      continue;
+    } else if (!selectedSet.has(dateStr)) {
+      result[dateStr] = isWeekend(parseISO(dateStr)) ? 'weekend' : 'normal';
     }
-    if (selectedSet.has(dateStr)) continue; // deferred to Phase 3
-    result[dateStr] = isWeekend(parseISO(dateStr)) ? 'weekend' : 'normal';
   }
+  return result;
+}
 
-  // --- Phase 2: Build event timeline ---
-  const sortedSelected = [...selectedDates].filter(d => !enabledHolidays[d]).sort();
-  if (sortedSelected.length === 0) return result;
-
-  const firstVacationYear = getVacationYearForDate(startDate);
-  const lastVacationYear = getVacationYearForDate(sortedSelected[sortedSelected.length - 1]);
-  const vacationYearCount = lastVacationYear - firstVacationYear + 1;
-
-  // Employment start rounded to month boundary (matches earnedInVacationYear)
-  const employmentMonthStart = format(
-    startOfMonth(parseISO(startDate)), 'yyyy-MM-dd'
-  );
-
-  // Event types: 0 = earn/extra (fire first at same date), 1 = expiry (fire after)
-  const events: Array<{ date: string; priority: number; yearIndex: number; kind: 'earn' | 'extra' | 'expiry' }> = [];
+/**
+ * Build a sorted timeline of earn, extra, and expiry events
+ * across all vacation years.
+ */
+export function buildTimelineEvents(
+  firstVacationYear: number,
+  vacationYearCount: number,
+  employmentMonthStart: string,
+  startDate: string,
+  extraDaysMonth: number
+): TimelineEvent[] {
+  const events: TimelineEvent[] = [];
 
   for (let i = 0; i < vacationYearCount; i++) {
     const year = firstVacationYear + i;
     const obtainStart = `${year}-09-01`;
-    const obtainEndStr = `${year + 1}-09-01`; // exclusive end for month counting
+    const obtainEndStr = `${year + 1}-09-01`;
 
     // Earn events: one per month-start in obtain period, after employment start
     const effectiveEarnStart = obtainStart > employmentMonthStart
       ? obtainStart : employmentMonthStart;
-    let cur = parseISO(effectiveEarnStart);
+    const effectiveEarnStartDate = parseISO(effectiveEarnStart);
     const obtainEndDate = parseISO(obtainEndStr);
-    while (isBefore(cur, obtainEndDate)) {
-      events.push({ date: format(cur, 'yyyy-MM-dd'), priority: 0, yearIndex: i, kind: 'earn' });
-      cur = addMonths(cur, 1);
+    const monthCount = differenceInMonths(obtainEndDate, effectiveEarnStartDate);
+    for (let m = 0; m < monthCount; m++) {
+      events.push({
+        date: format(addMonths(effectiveEarnStartDate, m), 'yyyy-MM-dd'),
+        priority: 0, yearIndex: i, kind: 'earn',
+      });
     }
 
     // Extra events: check both calendar years overlapping the obtain period
@@ -282,87 +285,145 @@ export function computeAllStatuses(
     return cmp !== 0 ? cmp : a.priority - b.priority;
   });
 
-  // --- Phase 3: Merge-walk sorted selected dates with events ---
-  const vacationYears = Array.from({ length: vacationYearCount }, (_, i) => ({
-    earned: 0,
-    extra: 0,
-    used: 0,
-    transferred: 0,
-    expired: false,
-    usableEnd: `${firstVacationYear + i + 1}-12-31`,
+  return events;
+}
+
+/**
+ * Apply a single timeline event to the vacation year state.
+ */
+export function applyEvent(
+  event: TimelineEvent,
+  vacationYears: VacationYearState[],
+  extraDaysCount: number,
+  initialDays: number,
+  maxTransferDays: number
+): void {
+  const target = vacationYears[event.yearIndex];
+  switch (event.kind) {
+    case 'earn':
+      target.earned += 2.08;
+      break;
+    case 'extra':
+      target.extra += extraDaysCount;
+      break;
+    case 'expiry': {
+      const balance = target.earned + target.extra + target.transferred - target.used
+        + (event.yearIndex === 0 ? initialDays : 0);
+      target.expired = true;
+      if (balance > 0 && event.yearIndex + 1 < vacationYears.length) {
+        vacationYears[event.yearIndex + 1].transferred = Math.min(balance, maxTransferDays);
+      }
+      break;
+    }
+  }
+}
+
+/**
+ * Allocate 1 used day to the earliest usable vacation year with positive balance.
+ * Falls back to the latest usable year if none have positive balance (allows borrowing).
+ */
+export function allocateDay(
+  dateStr: string,
+  vacationYears: VacationYearState[],
+  initialDays: number
+): void {
+  // Try earliest year with positive balance first
+  for (let i = 0; i < vacationYears.length; i++) {
+    const vy = vacationYears[i];
+    if (dateStr <= vy.usableEnd) {
+      const balance = vy.earned + vy.extra - vy.used + (i === 0 ? initialDays : 0);
+      if (balance > 0) {
+        vy.used += 1;
+        return;
+      }
+    }
+  }
+  // Fallback: latest usable year (borrowing / negative balance)
+  for (let i = vacationYears.length - 1; i >= 0; i--) {
+    if (dateStr <= vacationYears[i].usableEnd) {
+      vacationYears[i].used += 1;
+      return;
+    }
+  }
+}
+
+/**
+ * Sum balances across all non-expired vacation years.
+ */
+export function computeTotalActiveBalance(
+  vacationYears: VacationYearState[],
+  initialDays: number
+): number {
+  let total = 0;
+  for (let i = 0; i < vacationYears.length; i++) {
+    const vy = vacationYears[i];
+    if (!vy.expired) {
+      total += vy.earned + vy.extra + vy.transferred - vy.used
+        + (i === 0 ? initialDays : 0);
+    }
+  }
+  return total;
+}
+
+/**
+ * Map a balance value to a day status.
+ */
+export function statusFromBalance(balance: number, advanceDays: number): DayStatus {
+  if (balance >= 0) return 'selected-ok';
+  if (balance >= -advanceDays) return 'selected-warning';
+  return 'selected-overdrawn';
+}
+
+/**
+ * Compute day statuses for all calendar dates in a single pass.
+ *
+ * Builds a sorted event timeline (earn/extra/expiry events) and
+ * walks it together with sorted selected dates, maintaining per-vacation-year
+ * running state incrementally. Complexity: O(D + E·log E + S·V).
+ */
+export function computeAllStatuses(
+  dates: string[],
+  selectedDates: string[],
+  enabledHolidays: Record<string, boolean>,
+  startDate: string,
+  initialDays: number,
+  extraDaysMonth: number,
+  extraDaysCount: number,
+  advanceDays: number,
+  maxTransferDays: number = 5
+): Record<string, DayStatus> {
+  const selectedSet = new Set(selectedDates);
+  const result = classifyStaticDates(dates, startDate, enabledHolidays, selectedSet);
+
+  const sortedSelected = [...selectedDates].filter(d => !enabledHolidays[d]).sort();
+  if (sortedSelected.length === 0) return result;
+
+  // Determine vacation year range
+  const firstVacationYear = getVacationYearForDate(startDate);
+  const lastVacationYear = getVacationYearForDate(sortedSelected[sortedSelected.length - 1]);
+  const vacationYearCount = lastVacationYear - firstVacationYear + 1;
+
+  const employmentMonthStart = format(startOfMonth(parseISO(startDate)), 'yyyy-MM-dd');
+  const events = buildTimelineEvents(firstVacationYear, vacationYearCount, employmentMonthStart, startDate, extraDaysMonth);
+
+  const vacationYears: VacationYearState[] = Array.from({ length: vacationYearCount }, (_, i) => ({
+    earned: 0, extra: 0, used: 0, transferred: 0,
+    expired: false, usableEnd: `${firstVacationYear + i + 1}-12-31`,
   }));
 
+  // Walk selected dates and events together in sorted order
   let eventIdx = 0;
-
   for (const dateStr of sortedSelected) {
-    // Apply all events with date <= current selected date
-    while (eventIdx < events.length && events[eventIdx].date <= dateStr) {
-      const event = events[eventIdx];
-      const targetYear = vacationYears[event.yearIndex];
-      switch (event.kind) {
-        case 'earn':
-          targetYear.earned += 2.08;
-          break;
-        case 'extra':
-          targetYear.extra += extraDaysCount;
-          break;
-        case 'expiry': {
-          // Compute balance of expiring vacation year to determine transfer
-          const balance = targetYear.earned + targetYear.extra + targetYear.transferred - targetYear.used
-            + (event.yearIndex === 0 ? initialDays : 0);
-          targetYear.expired = true;
-          if (balance > 0 && event.yearIndex + 1 < vacationYearCount) {
-            vacationYears[event.yearIndex + 1].transferred = Math.min(balance, maxTransferDays);
-          }
-          break;
-        }
-      }
-      eventIdx++;
+    // Apply all events up to this date
+    for (; eventIdx < events.length && events[eventIdx].date <= dateStr; eventIdx++) {
+      applyEvent(events[eventIdx], vacationYears, extraDaysCount, initialDays, maxTransferDays);
     }
 
-    // Allocate 1 day to earliest usable vacation year with positive balance.
-    // Allocation uses earned+extra only (not transfers), matching the original
-    // algorithm where allocation happens before transfer processing.
-    let allocated = false;
-    for (let i = 0; i < vacationYearCount; i++) {
-      const vacationYear = vacationYears[i];
-      if (dateStr <= vacationYear.usableEnd) {
-        const allocBalance = vacationYear.earned + vacationYear.extra - vacationYear.used
-          + (i === 0 ? initialDays : 0);
-        if (allocBalance > 0) {
-          vacationYear.used += 1;
-          allocated = true;
-          break;
-        }
-      }
-    }
-    if (!allocated) {
-      // Fallback: latest usable vacation year (allows borrowing / negative balance)
-      for (let i = vacationYearCount - 1; i >= 0; i--) {
-        if (dateStr <= vacationYears[i].usableEnd) {
-          vacationYears[i].used += 1;
-          break;
-        }
-      }
-    }
+    allocateDay(dateStr, vacationYears, initialDays);
 
-    // Compute total active balance (including transfers) for status
-    let totalBalance = 0;
-    for (let i = 0; i < vacationYearCount; i++) {
-      if (!vacationYears[i].expired) {
-        const vacationYear = vacationYears[i];
-        totalBalance += vacationYear.earned + vacationYear.extra + vacationYear.transferred - vacationYear.used
-          + (i === 0 ? initialDays : 0);
-      }
-    }
-
-    // Assign status only for dates not already classified in Phase 1
     if (!(dateStr in result)) {
-      result[dateStr] = totalBalance >= 0
-        ? 'selected-ok'
-        : totalBalance >= -advanceDays
-          ? 'selected-warning'
-          : 'selected-overdrawn';
+      const balance = computeTotalActiveBalance(vacationYears, initialDays);
+      result[dateStr] = statusFromBalance(balance, advanceDays);
     }
   }
 
