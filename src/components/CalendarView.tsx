@@ -58,6 +58,14 @@ function YearSeparator({ year }: { year: number }) {
   );
 }
 
+function YearHeader({ year }: { year: number }) {
+  return (
+    <div className="col-span-full pl-2 pt-2">
+      <h2 className="text-xl font-bold">{year}</h2>
+    </div>
+  );
+}
+
 export function CalendarView() {
   const { state, calendarRef, dayStatuses } = useVacation();
   const months = generateMonths(state.yearRange);
@@ -65,9 +73,11 @@ export function CalendarView() {
   return (
     <div ref={calendarRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4 max-w-6xl">
       {months.map((m) => {
+        const isJanuary = m.getMonth() === 0;
         const isDecember = m.getMonth() === 11;
         return (
           <Fragment key={m.toISOString()}>
+            {isJanuary && <YearHeader year={m.getFullYear()} />}
             <CalendarMonth month={m} dayStatuses={dayStatuses} />
             {isDecember && <YearSeparator year={m.getFullYear()} />}
           </Fragment>
