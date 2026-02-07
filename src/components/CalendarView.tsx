@@ -51,9 +51,9 @@ function YearSeparator({ year }: { year: number }) {
 
   return (
     <div className="col-span-full flex items-center gap-2 px-4 py-4 text-muted-foreground">
-      <div className="shrink-0 flex-1 border-t border-muted-foreground/30" />
+      <div className="flex-1 min-w-8 border-t border-muted-foreground/30" />
       {separatorText}
-      <div className="shrink-0 flex-1 border-t border-muted-foreground/30" />
+      <div className="flex-1 min-w-8 border-t border-muted-foreground/30" />
     </div>
   );
 }
