@@ -3,6 +3,7 @@ import {
   endOfMonth,
   eachDayOfInterval,
   getDay,
+  getISOWeek,
   format,
 } from 'date-fns';
 import { da } from 'date-fns/locale';
@@ -87,30 +88,64 @@ export function CalendarMonth({ month, dayStatuses }: CalendarMonthProps) {
 
   const startOffset = (getDay(start) + 6) % 7;
 
+  // Build week rows for week number display
+  const allCells: (Date | null)[] = [
+    ...Array<null>(startOffset).fill(null),
+    ...days,
+  ];
+  const weeks: (Date | null)[][] = [];
+  for (let i = 0; i < allCells.length; i += 7) {
+    weeks.push(allCells.slice(i, i + 7));
+  }
+
   return (
     <div className="p-2">
       <MonthHeader month={month} />
-      <div className="grid grid-cols-7 gap-x-3 gap-y-1.5">
-        {DA_DAY_NAMES.map((name) => (
-          <div
-            key={name}
-            className="w-8 h-6 text-xs text-muted-foreground flex items-center justify-center"
-          >
-            {name}
+      <div className="flex flex-col gap-y-1.5">
+        {/* Day name header row */}
+        <div className="flex">
+          <div className="w-5 shrink-0" />
+          <div className="grid grid-cols-7 gap-x-3 flex-1">
+            {DA_DAY_NAMES.map((name) => (
+              <div
+                key={name}
+                className="w-8 h-6 text-xs text-muted-foreground flex items-center justify-center"
+              >
+                {name}
+              </div>
+            ))}
           </div>
-        ))}
-        {Array.from({ length: startOffset }).map((_, i) => (
-          <div key={`empty-${i}`} className="w-8 h-8" />
-        ))}
-        {days.map((day) => {
-          const dateStr = toISODate(day);
+        </div>
+        {/* Week rows */}
+        {weeks.map((week, weekIndex) => {
+          const firstDay = week.find((d): d is Date => d !== null);
+          const weekNum = firstDay ? getISOWeek(firstDay) : null;
           return (
-            <CalendarDay
-              key={dateStr}
-              dateStr={dateStr}
-              dayOfMonth={day.getDate()}
-              status={dayStatuses[dateStr] ?? 'normal'}
-            />
+            <div key={weekIndex} className="flex">
+              <div className="w-5 shrink-0 h-8 flex items-center justify-end pr-1 text-[10px] text-muted-foreground/60">
+                {weekNum}
+              </div>
+              <div className="grid grid-cols-7 gap-x-3 flex-1">
+                {week.map((day, dayIndex) => {
+                  if (!day) {
+                    return <div key={`empty-${dayIndex}`} className="w-8 h-8" />;
+                  }
+                  const dateStr = toISODate(day);
+                  return (
+                    <CalendarDay
+                      key={dateStr}
+                      dateStr={dateStr}
+                      dayOfMonth={day.getDate()}
+                      status={dayStatuses[dateStr] ?? 'normal'}
+                    />
+                  );
+                })}
+                {week.length < 7 &&
+                  Array.from({ length: 7 - week.length }).map((_, i) => (
+                    <div key={`pad-${i}`} className="w-8 h-8" />
+                  ))}
+              </div>
+            </div>
           );
         })}
       </div>
