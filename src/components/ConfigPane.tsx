@@ -89,12 +89,12 @@ export function TopConfigBar({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
   }, [defaults, initDefaults, state.holidays.length]);
 
   return (
-    <div className="px-4 pt-4 max-w-6xl w-full">
+    <div className="px-4 max-w-6xl w-full">
       {onOpenDrawer && (
         <Button
           variant="outline"
           size="icon"
-          className="rounded-full shrink-0 mb-2"
+          className="rounded-full shrink-0 mb-4"
           onClick={onOpenDrawer}
         >
           <Settings className="size-5" />

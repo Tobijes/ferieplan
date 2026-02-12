@@ -30,9 +30,9 @@ function AppContent() {
           <div className="hidden lg:block">
             <SidebarConfig />
           </div>
-          <div className="flex-1 flex flex-col lg:items-center">
+          <div className="flex-1 flex flex-col lg:items-center gap-4 pt-4">
             <TopConfigBar onOpenDrawer={!isDesktop ? () => setDrawerOpen(true) : undefined} />
-            <p className="text-sm text-muted-foreground text-center max-w-6xl w-full px-4 pt-4">
+            <p className="text-sm text-muted-foreground text-center max-w-6xl w-full px-4">
               Tryk på datoerne i kalenderen for at vælge dine feriedage.
             </p>
             <CalendarView />
