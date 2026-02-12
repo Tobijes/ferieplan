@@ -71,8 +71,7 @@ import {
 } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { da } from 'date-fns/locale';
-import { getVisibleYears } from '@/lib/dateUtils';
-import type { VacationState, YearRange } from '@/types';
+import type { VacationState } from '@/types';
 import { HelpIcon } from '@/components/HelpIcon';
 import { cn } from '@/lib/utils';
 
@@ -83,7 +82,7 @@ const MONTH_NAMES = [
 ];
 
 export function ConfigPane() {
-  const { state, setState, toggleHoliday, initDefaults, addHoliday, resetState, setHighlightedDate } = useVacation();
+  const { state, setState, toggleHoliday, initDefaults, addHoliday, resetState, setHighlightedDate, visibleYears } = useVacation();
   const defaults = useDefaults();
 
   useEffect(() => {
@@ -91,8 +90,6 @@ export function ConfigPane() {
       initDefaults(defaults.holidays, defaults.extraHoliday.defaultMonth, defaults.extraHoliday.defaultCount, defaults.advanceDays, defaults.maxTransferDays);
     }
   }, [defaults, initDefaults, state.holidays.length]);
-
-  const visibleYears = getVisibleYears(state.yearRange);
 
   const yearSet = new Set(visibleYears.map(String));
   const holidaysByYear: Record<string, typeof state.holidays> = {};
@@ -274,26 +271,6 @@ export function ConfigPane() {
                     }
                   />
                   <HelpIcon text="Maks antal ubrugte feriedage der kan overføres til næste ferieår." />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label>Visning</Label>
-                <div className="flex gap-2 items-center">
-                  <Select
-                    value={state.yearRange}
-                    onValueChange={(v) =>
-                      setState((prev) => ({ ...prev, yearRange: v as YearRange }))
-                    }
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="current">Indeværende år</SelectItem>
-                      <SelectItem value="current+next">Indeværende + næste år</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <HelpIcon text="Vælg om kalenderen viser indeværende år eller også næste år." />
                 </div>
               </div>
             </CardContent>
