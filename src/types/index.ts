@@ -14,14 +14,11 @@ export interface DefaultData {
   maxTransferDays: number;
 }
 
-export type YearRange = 'current' | 'current+next';
-
 export interface VacationState {
   startDate: string;
   initialVacationDays: number;
   extraDaysMonth: number;
   extraDaysCount: number;
-  yearRange: YearRange;
   selectedDates: string[];
   enabledHolidays: Record<string, boolean>;
   holidays: Holiday[];

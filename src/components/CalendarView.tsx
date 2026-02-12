@@ -67,8 +67,8 @@ function YearHeader({ year }: { year: number }) {
 }
 
 export function CalendarView() {
-  const { state, calendarRef, dayStatuses } = useVacation();
-  const months = generateMonths(state.yearRange);
+  const { calendarRef, dayStatuses, visibleYears } = useVacation();
+  const months = generateMonths(visibleYears);
 
   return (
     <div ref={calendarRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4 max-w-6xl">

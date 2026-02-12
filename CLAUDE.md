@@ -18,8 +18,9 @@ Danish vacation day planner — client-side React app with no backend.
 - "Forskudsferie" (advance vacation) allows borrowing a configurable number of days before they are earned. Default 0, seeded from `default.json`.
 - When a ferieår expires, up to `maxTransferDays` (default 5, configurable) surplus days can transfer to the next ferieår; excess days are lost.
 - Default holiday data lives in `public/default.json` for 2026–2027. This file seeds the user's holiday list on first load (or after reset). Each holiday has a `date`, `name`, and `enabled` boolean. It also seeds `maxTransferDays`.
+- **Holiday merge**: On every load, holidays from `default.json` are merged into state. Any holidays whose date doesn't already exist in `state.holidays` are added with their default enabled state. Existing holidays and user-added holidays are preserved. This ensures new years/holidays added to `default.json` are picked up by existing users automatically. The merge is also triggered after importing a saved file.
 - The user can add custom holidays via a "Tilføj helligdag" button inside the Helligdage card content.
-- Holidays (including user-added ones) are persisted in `state.holidays` in localStorage, not re-fetched from the JSON on every load.
+- Holidays (including user-added ones) are persisted in `state.holidays` in localStorage.
 - **Soft merge**: When loading state from localStorage or importing a saved file, missing properties are filled from `defaultState` via spread merge (`{ ...defaultState, ...stored }`). This ensures new config properties added in future versions are picked up by existing users without losing their data.
 
 ## Tech Stack
@@ -49,7 +50,7 @@ src/
 │   ├── App.tsx            # Root: VacationProvider + TooltipProvider + 2-column layout
 │   ├── HelpIcon.tsx       # Reusable "?" popover icon (click-to-open, click-outside-to-close) using lucide-react CircleHelp
 │   ├── ConfigPane.tsx     # Left pane: settings, holiday toggles (accordion by year), data management (reset)
-│   ├── CalendarView.tsx   # Right pane: scrollable grid of months based on yearRange, year separators
+│   ├── CalendarView.tsx   # Right pane: scrollable grid of months based on visibleYears, year separators
 │   ├── CalendarMonth.tsx  # Single month: header with ferieår balances + 7-col day grid (Mon–Sun)
 │   └── CalendarDay.tsx    # Day cell: colored circle (no tooltips)
 ├── context/
@@ -60,11 +61,11 @@ src/
 │   └── useMediaQuery.ts   # Media query hook for responsive behavior
 ├── lib/
 │   ├── utils.ts           # cn() helper (shadcn)
-│   ├── dateUtils.ts       # DA_DAY_NAMES, formatMonthYear, generateMonths, getVisibleYears, toISODate
+│   ├── dateUtils.ts       # DA_DAY_NAMES, formatMonthYear, generateMonths, toISODate
 │   ├── vacationCalculations.ts  # Balance logic, day status determination
 │   └── vacationCalculations.test.ts  # Vitest tests for vacation calculations
 ├── types/
-│   └── index.ts           # Holiday, DefaultData, VacationState, YearRange, DayStatus, VacationYearBalance
+│   └── index.ts           # Holiday, DefaultData, VacationState, DayStatus, VacationYearBalance
 ├── main.tsx
 └── index.css              # Tailwind imports + CSS variables (light theme only)
 public/
@@ -79,7 +80,6 @@ interface VacationState {
   initialVacationDays: number;    // days available at start, default: 0
   extraDaysMonth: number;         // 1–12, month when extra days granted, default: 5 (May)
   extraDaysCount: number;         // number of extra days granted, default: 5
-  yearRange: 'current' | 'current+next';  // calendar display range, default: 'current'
   selectedDates: string[];        // ISO dates user picked as vacation
   enabledHolidays: Record<string, boolean>; // holiday date → enabled
   holidays: Holiday[];            // full holiday list (persisted, seeded from default.json)
@@ -140,7 +140,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 - Holidays in config pane show date tooltip on hover and highlight the corresponding calendar day with a blue ring
 - Holidays are grouped by year in an accordion, filtered to only show years visible in the calendar
 - Calendar view has `max-w-5xl` to prevent stretching on wide monitors
-- Year range selector: "Indeværende år" (12 months) or "Indeværende + næste år" (24 months)
+- Visible years are derived automatically from `state.holidays` (unique years from holiday dates, always including current year). The calendar displays all years that have holidays configured. `visibleYears` is computed in VacationContext and exposed via context.
 - State survives page refresh via localStorage
 - `holidayNames` map is derived from `state.holidays` for holiday name lookups
 - `dayStatuses` map is precomputed in the context (`computeAllStatuses`) for all visible days in a single pass, avoiding per-cell `getDayStatus` calls
@@ -148,6 +148,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 - Holiday highlight ring uses a DOM-based approach (not React state) for performance: `setHighlightedDate` toggles a `data-highlighted` attribute on `[data-date]` buttons via `calendarRef`, styled with Tailwind `data-[highlighted=true]:ring-*` selectors. This avoids re-rendering all CalendarDay components on hover.
 - Holiday labels in ConfigPane are clickable to toggle the holiday (same as the switch)
 - "Ryd alting" button in the Data card resets state in-place via `resetState()` (no page reload). After reset, `initDefaults` re-seeds holidays from `default.json` on next render.
+- `initDefaults` performs a merge: on first load (empty holidays) it does a full seed of holidays and config values; on subsequent loads it adds any holidays from `default.json` missing in state without overwriting user config. The merge is idempotent (returns prev unchanged if nothing new).
 - Context functions (`toggleDate`, `toggleHoliday`, `initDefaults`, `addHoliday`, `resetState`) have stable references (React Compiler handles this automatically)
 - Current year accordion is expanded by default; other years are collapsed
 - Users can add custom holidays via a "Tilføj helligdag" button (opens Popover with name field and native date picker) at the top of the Helligdage card content
