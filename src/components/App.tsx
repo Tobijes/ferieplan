@@ -26,15 +26,15 @@ function AppContent() {
   return (
     <>
       <div className="min-h-screen bg-background text-foreground">
-        <TopConfigBar onOpenDrawer={!isDesktop ? () => setDrawerOpen(true) : undefined} />
-        <p className="text-sm text-muted-foreground text-center max-w-6xl mx-auto px-4 pt-4">
-          Tryk på datoerne i kalenderen for at vælge dine feriedage.
-        </p>
         <div className="flex flex-col lg:flex-row">
           <div className="hidden lg:block">
             <SidebarConfig />
           </div>
           <div className="flex-1 flex flex-col lg:items-center">
+            <TopConfigBar onOpenDrawer={!isDesktop ? () => setDrawerOpen(true) : undefined} />
+            <p className="text-sm text-muted-foreground text-center max-w-6xl w-full px-4 pt-4">
+              Tryk på datoerne i kalenderen for at vælge dine feriedage.
+            </p>
             <CalendarView />
           </div>
         </div>

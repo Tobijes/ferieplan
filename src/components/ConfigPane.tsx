@@ -89,7 +89,7 @@ export function TopConfigBar({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
   }, [defaults, initDefaults, state.holidays.length]);
 
   return (
-    <div className="flex items-end gap-3 px-4 pt-4">
+    <div className="flex items-end gap-2 px-4 pt-4 max-w-6xl w-full">
       {onOpenDrawer && (
         <Button
           variant="outline"
@@ -100,40 +100,38 @@ export function TopConfigBar({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
           <Settings className="size-5" />
         </Button>
       )}
-      <div className="flex flex-wrap gap-x-6 gap-y-3 items-end flex-1">
-        <div className="space-y-1 min-w-48">
-          <Label htmlFor="startDate">Startdato</Label>
-          <div className="flex gap-2 items-center">
-            <Input
-              id="startDate"
-              type="date"
-              value={state.startDate}
-              className="flex-1"
-              onChange={(e) =>
-                setState((prev) => ({ ...prev, startDate: e.target.value }))
-              }
-            />
-            <HelpIcon text="Første dag hvor ferieplanen starter. Dage før denne dato kan ikke vælges." />
-          </div>
+      <div className="flex-1 min-w-0 space-y-1">
+        <Label htmlFor="startDate">Startdato</Label>
+        <div className="flex gap-2 items-center">
+          <Input
+            id="startDate"
+            type="date"
+            value={state.startDate}
+            className="flex-1 min-w-0"
+            onChange={(e) =>
+              setState((prev) => ({ ...prev, startDate: e.target.value }))
+            }
+          />
+          <HelpIcon text="Første dag hvor ferieplanen starter. Dage før denne dato kan ikke vælges." />
         </div>
-        <div className="space-y-1 min-w-48">
-          <Label htmlFor="initialDays">Optjente feriedage ved startdato</Label>
-          <div className="flex gap-2 items-center">
-            <DeferredNumberInput
-              id="initialDays"
-              min={0}
-              max={99}
-              className="flex-1"
-              value={state.initialVacationDays}
-              onCommit={(v) =>
-                setState((prev) => ({
-                  ...prev,
-                  initialVacationDays: v,
-                }))
-              }
-            />
-            <HelpIcon text="Antal feriedage du allerede har optjent ved startdatoen." />
-          </div>
+      </div>
+      <div className="flex-1 min-w-0 space-y-1">
+        <Label htmlFor="initialDays">Optjente feriedage ved startdato</Label>
+        <div className="flex gap-2 items-center">
+          <DeferredNumberInput
+            id="initialDays"
+            min={0}
+            max={99}
+            className="flex-1 min-w-0"
+            value={state.initialVacationDays}
+            onCommit={(v) =>
+              setState((prev) => ({
+                ...prev,
+                initialVacationDays: v,
+              }))
+            }
+          />
+          <HelpIcon text="Antal feriedage du allerede har optjent ved startdatoen." />
         </div>
       </div>
     </div>
