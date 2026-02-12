@@ -1,6 +1,8 @@
 services:
   app:
-    image: ghcr.io/tobijes/ferieplan--app:latest
+    build:
+      context: .              
+      dockerfile: Dockerfile
     pull_policy: always
     restart: always
     healthcheck:
