@@ -132,9 +132,9 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 
 ## Key Behaviors
 
-- The top config bar (start date + initial vacation days) is always visible at the top of the page above the explanatory text, in a horizontal layout. The label "Optjente feriedage ved startdato" wraps if needed.
+- The top config bar ("Optjente feriedage" + "Fra dato") is always visible at the top of the page above the explanatory text, in a horizontal layout with `max-w-lg` to prevent inputs from stretching too wide. Order: vacation days first, start date second. Labels wrap if needed.
 - On desktop (lg+): the sidebar config cards (Indstillinger, Helligdage, Data) are always visible in the left sidebar. Config cards are not collapsible.
-- On mobile: a circular settings icon button (lucide-react `Settings`) appears to the left of the top config bar. Clicking it opens a slide-in drawer from the left containing the sidebar config cards, overlaid on a semi-dark backdrop (`bg-black/50`). Body scroll is locked when the drawer is open (`overflow: hidden` on body + `overscroll-contain` on drawer panel). Drawer auto-closes when resizing to desktop. Clicking the overlay closes the drawer.
+- On mobile: a circular settings icon button (lucide-react `Settings`) appears above the top config bar inputs. Clicking it opens a slide-in drawer from the left containing the sidebar config cards, overlaid on a semi-dark backdrop (`bg-black/50`). Body scroll is locked when the drawer is open (`overflow: hidden` on body + `overscroll-contain` on drawer panel). Drawer auto-closes when resizing to desktop. Clicking the overlay closes the drawer.
 - Each config field in the settings card has a `HelpIcon` (CircleHelp from lucide-react) placed to the right of the input element. Click opens a Popover with a Danish description; click outside dismisses (touch-friendly, no hover required).
 - Dates before `startDate` are disabled and not selectable (status `before-start`)
 - Month headers show ferieår balances with format "YY/(YY+1): X.XX" (e.g., "25/26: 3.40"). Year label is gray, balance is green. For months Jan-Aug only the active ferieår is shown on the left. For Sep-Dec both ferieår are shown (ending year on left, new year on right).
@@ -154,7 +154,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 - Context functions (`toggleDate`, `toggleHoliday`, `initDefaults`, `addHoliday`, `resetState`) have stable references (React Compiler handles this automatically)
 - Current year accordion is expanded by default; other years are collapsed
 - Users can add custom holidays via a "Tilføj helligdag" button (opens Popover with name field and native date picker) at the top of the Helligdage card content
-- Number inputs (Optjente feriedage ved startdato, Ekstra feriedage, Forskudsferie) use `DeferredNumberInput` — local state while typing, commits to global state on blur/Enter. This avoids recomputing `dayStatuses` on every keystroke. All are clamped to 0–99.
+- Number inputs (Optjente feriedage, Ekstra feriedage, Forskudsferie) use `DeferredNumberInput` — local state while typing, commits to global state on blur/Enter. This avoids recomputing `dayStatuses` on every keystroke. All are clamped to 0–99.
 - Drawer animations (`drawer-slide-in`, `drawer-overlay-in`) are defined as CSS keyframes in `index.css` and registered as Tailwind theme animations.
 
 ## Locale
