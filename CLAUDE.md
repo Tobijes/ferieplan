@@ -132,7 +132,8 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 
 ## Key Behaviors
 
-- The top config bar ("Optjente feriedage" + "Fra dato") is always visible at the top of the page above the explanatory text, in a horizontal layout with `max-w-lg` to prevent inputs from stretching too wide. Order: vacation days first, start date second. Labels wrap if needed.
+- The top config bar ("Optjente feriedage" + "Fra dato") is always visible at the top of the page above the explanatory text, in a horizontal layout with `max-w-lg` centered (`mx-auto`) to prevent inputs from stretching too wide. Order: vacation days first, start date second. Labels wrap if needed.
+- Vertical spacing between settings button, config inputs, help text, and calendar uses a uniform `gap-4` (16px) on the parent flex-col, with `pt-4` for top padding. The settings button uses `mb-4` to match.
 - On desktop (lg+): the sidebar config cards (Indstillinger, Helligdage, Data) are always visible in the left sidebar. Config cards are not collapsible.
 - On mobile: a circular settings icon button (lucide-react `Settings`) appears above the top config bar inputs. Clicking it opens a slide-in drawer from the left containing the sidebar config cards, overlaid on a semi-dark backdrop (`bg-black/50`). Body scroll is locked when the drawer is open (`overflow: hidden` on body + `overscroll-contain` on drawer panel). Drawer auto-closes when resizing to desktop. Clicking the overlay closes the drawer.
 - Each config field in the settings card has a `HelpIcon` (CircleHelp from lucide-react) placed to the right of the input element. Click opens a Popover with a Danish description; click outside dismisses (touch-friendly, no hover required).
@@ -141,7 +142,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 - Year separators appear after December months spanning the full grid width with three states: (1) "Ingen feriedage overføres til næste ferieår" if balance is 0, (2) "X.XX feriedage overføres til næste ferieår" if within transfer limit, (3) "X.XX feriedage overføres til næste ferieår, Y.YY feriedage overføres ikke" if exceeding limit (Y.YY in bold red). All text is gray except the lost amount.
 - Holidays in config pane show date tooltip on hover and highlight the corresponding calendar day with a blue ring
 - Holidays are grouped by year in an accordion, filtered to only show years visible in the calendar
-- Calendar view has `max-w-5xl` to prevent stretching on wide monitors
+- Calendar view has `max-w-6xl` to prevent stretching on wide monitors
 - Visible years are derived automatically from `state.holidays` (unique years from holiday dates, always including current year). The calendar displays all years that have holidays configured. `visibleYears` is computed in VacationContext and exposed via context.
 - State survives page refresh via localStorage
 - `holidayNames` map is derived from `state.holidays` for holiday name lookups
