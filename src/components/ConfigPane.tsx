@@ -100,7 +100,7 @@ export function TopConfigBar({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
           <Settings className="size-5" />
         </Button>
       )}
-      <div className="flex items-end gap-2 max-w-lg">
+      <div className="flex items-end gap-2 max-w-lg mx-auto">
         <div className="flex-1 min-w-0 space-y-1">
           <Label htmlFor="initialDays">Optjente feriedage</Label>
           <div className="flex gap-2 items-center">
