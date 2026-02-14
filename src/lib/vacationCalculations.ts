@@ -8,6 +8,9 @@ import {
 } from 'date-fns';
 import type { DayStatus, VacationYearBalance } from '@/types';
 
+/** Epsilon for floating-point balance comparisons */
+const EPS = 1e-9;
+
 // --- Per-vacation-year balance system ---
 
 /**
@@ -146,26 +149,34 @@ export function getVacationYearBalances(
     balances[0].balance += initialDays;
   }
 
-  // Step 1: Allocate used days earliest-first (before transfers)
+  // Step 1: Allocate used days earliest-first with waterfall splitting (before transfers)
   const usedDates = [...selectedDates]
     .filter((d) => !enabledHolidays[d] && d <= atDate)
     .sort();
 
   for (const d of usedDates) {
-    let allocated = false;
+    let remaining = 1;
+
+    // Pass 1: consume from earliest year with positive available balance
     for (const b of balances) {
+      if (remaining <= EPS) break;
       const usableEnd = usablePeriodEnd(b.year);
-      if (d <= usableEnd && b.balance - b.used > 0) {
-        b.used += 1;
-        allocated = true;
-        break;
+      if (d <= usableEnd) {
+        const available = b.balance - b.used;
+        if (available > EPS) {
+          const consume = Math.min(available, remaining);
+          b.used += consume;
+          remaining -= consume;
+        }
       }
     }
-    if (!allocated) {
+
+    // Pass 2: borrow from latest usable year
+    if (remaining > EPS) {
       for (let i = balances.length - 1; i >= 0; i--) {
         const usableEnd = usablePeriodEnd(balances[i].year);
         if (d <= usableEnd) {
-          balances[i].used += 1;
+          balances[i].used += remaining;
           break;
         }
       }
@@ -177,6 +188,7 @@ export function getVacationYearBalances(
     const b = balances[i];
     b.balance = b.earned + b.extra + b.transferred - b.used;
     if (i === 0) b.balance += initialDays;
+    if (Math.abs(b.balance) < EPS) b.balance = 0;
   }
 
   // Step 3: Process transfers from expired vacation year to the next one
@@ -319,30 +331,39 @@ export function applyEvent(
 }
 
 /**
- * Allocate 1 used day to the earliest usable vacation year with positive balance.
- * Falls back to the latest usable year if none have positive balance (allows borrowing).
+ * Allocate 1 used day across vacation years using waterfall allocation.
+ * Consumes from the earliest usable year first; if that year has less than 1 day
+ * of balance, takes what it can and carries the remainder to the next year.
+ * Falls back to the latest usable year if all are exhausted (allows borrowing).
  */
 export function allocateDay(
   dateStr: string,
   vacationYears: VacationYearState[],
   initialDays: number
 ): void {
-  // Try earliest year with positive balance first
-  for (let i = 0; i < vacationYears.length; i++) {
+  let remaining = 1;
+
+  // Pass 1: consume from earliest years with positive balance
+  for (let i = 0; i < vacationYears.length && remaining > EPS; i++) {
     const vy = vacationYears[i];
     if (dateStr <= vy.usableEnd) {
-      const balance = vy.earned + vy.extra - vy.used + (i === 0 ? initialDays : 0);
-      if (balance > 0) {
-        vy.used += 1;
-        return;
+      const balance = vy.earned + vy.extra + vy.transferred - vy.used
+        + (i === 0 ? initialDays : 0);
+      if (balance > EPS) {
+        const consume = Math.min(balance, remaining);
+        vy.used += consume;
+        remaining -= consume;
       }
     }
   }
-  // Fallback: latest usable year (borrowing / negative balance)
-  for (let i = vacationYears.length - 1; i >= 0; i--) {
-    if (dateStr <= vacationYears[i].usableEnd) {
-      vacationYears[i].used += 1;
-      return;
+
+  // Pass 2: if remaining, all active years exhausted — borrow from latest usable year
+  if (remaining > EPS) {
+    for (let i = vacationYears.length - 1; i >= 0; i--) {
+      if (dateStr <= vacationYears[i].usableEnd) {
+        vacationYears[i].used += remaining;
+        return;
+      }
     }
   }
 }

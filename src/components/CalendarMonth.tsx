@@ -28,7 +28,7 @@ function VacationYearBadge({ year, balance }: { year: number; balance: number })
   return (
     <span className="text-xs whitespace-nowrap">
       <span className="text-muted-foreground">{formatVacationYearLabel(year)}:</span>{' '}
-      <span className={`${balance < 0 ? 'text-red-600' : 'text-green-600'} font-medium`}>{balance.toFixed(2)}</span>
+      <span className={`${balance < 0 ? 'text-red-600' : balance === 0 ? 'text-muted-foreground' : 'text-green-600'} font-medium`}>{balance.toFixed(2)}</span>
     </span>
   );
 }

@@ -126,6 +126,36 @@ describe('getVacationYearBalances', () => {
     expect(balances[1].used).toBe(0);
   });
 
+  it('splits used days across years when earliest year has partial balance', () => {
+    // Start Sep 2025, check at Nov 2026
+    // vy2025: 12 months × 2.08 = 24.96 earned + 5 extra = 29.96 total
+    // Use 29 weekdays first, then 1 more that should split: 0.96 from vy2025, 0.04 from vy2026
+    const selected: string[] = [];
+    let count = 0;
+    for (let m = 9; m <= 12 && count < 29; m++) {
+      for (let d = 1; d <= 28 && count < 29; d++) {
+        const dt = new Date(2025, m - 1, d);
+        if (dt.getDay() !== 0 && dt.getDay() !== 6) {
+          selected.push(`2025-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+          count++;
+        }
+      }
+    }
+    // Add one more day in Oct 2026 (overlapping period)
+    selected.push('2026-10-01');
+
+    const balances = getVacationYearBalances(
+      '2025-09-01', 0, 5, 5, selected, {}, '2026-11-01'
+    );
+    const vy2025 = balances.find(b => b.year === 2025)!;
+    const vy2026 = balances.find(b => b.year === 2026)!;
+
+    // vy2025: 29.96 total, used 29 + 0.96 = 29.96
+    expect(vy2025.used).toBeCloseTo(29.96);
+    // vy2026: used remainder 0.04
+    expect(vy2026.used).toBeCloseTo(0.04);
+  });
+
   it('transfer: up to 5 days carry over, excess is lost', () => {
     // Vacation year 2025 expires Dec 31, 2026. Check at Jan 2027.
     // Give enough initial days so vacation year 2025 has > 5 remaining
@@ -455,6 +485,26 @@ describe('allocateDay', () => {
     allocateDay('2026-06-01', years, 10);
     expect(years[0].used).toBe(1);
     expect(years[1].used).toBe(0);
+  });
+
+  it('splits day across years when earliest year has partial balance', () => {
+    const years = [
+      makeVacationYear({ earned: 0.8 }),
+      makeVacationYear({ earned: 5, usableEnd: '2027-12-31' }),
+    ];
+    allocateDay('2026-06-01', years, 0);
+    expect(years[0].used).toBeCloseTo(0.8);
+    expect(years[1].used).toBeCloseTo(0.2);
+  });
+
+  it('includes transferred days in balance for splitting', () => {
+    const years = [
+      makeVacationYear({ earned: 0, transferred: 0.6 }),
+      makeVacationYear({ earned: 5, usableEnd: '2027-12-31' }),
+    ];
+    allocateDay('2026-06-01', years, 0);
+    expect(years[0].used).toBeCloseTo(0.6);
+    expect(years[1].used).toBeCloseTo(0.4);
   });
 });
 

@@ -111,7 +111,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 
 1. Per ferieår, each month within the obtain period earns 2.08 days (credited at start of month, usable from day 1; if employment starts mid-month, the full month is still credited)
 2. Extra days (`extraDaysCount`) are added when the configured `extraDaysMonth` falls within the obtain period
-3. Used days (selected dates excluding holidays) are allocated to the earliest non-expired ferieår with remaining balance
+3. Used days (selected dates excluding holidays) are allocated using **waterfall splitting**: each day is consumed from the earliest non-expired ferieår with remaining balance first; if that year has less than 1 day remaining, it takes what's available (zeroing the year) and the remainder spills to the next usable ferieår. Only when all active years are exhausted does the balance go negative (borrowing from the latest usable year).
 4. When a ferieår expires, up to `maxTransferDays` (default 5) surplus days transfer to the next ferieår; the rest are lost
 5. `initialVacationDays` are added to the earliest ferieår's balance
 6. A selected day is **green** if total active balance ≥ 0; **yellow** if < 0 but ≥ −advanceDays (forskudsferie); **red** if < −advanceDays (overdrawn)
@@ -138,7 +138,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 - On mobile: a circular settings icon button (lucide-react `Settings`) appears above the top config bar inputs. Clicking it opens a slide-in drawer from the left containing the sidebar config cards, overlaid on a semi-dark backdrop (`bg-black/50`). Body scroll is locked when the drawer is open (`overflow: hidden` on body + `overscroll-contain` on drawer panel). Drawer auto-closes when resizing to desktop. Clicking the overlay closes the drawer.
 - Each config field in the settings card has a `HelpIcon` (CircleHelp from lucide-react) placed to the right of the input element. Click opens a Popover with a Danish description; click outside dismisses (touch-friendly, no hover required).
 - Dates before `startDate` are disabled and not selectable (status `before-start`)
-- Month headers show ferieår balances with format "YY/(YY+1): X.XX" (e.g., "25/26: 3.40"). Year label is gray, balance is green. For months Jan-Aug only the active ferieår is shown on the left. For Sep-Dec both ferieår are shown (ending year on left, new year on right).
+- Month headers show ferieår balances with format "YY/(YY+1): X.XX" (e.g., "25/26: 3.40"). Year label is gray; balance color is green (positive), gray (zero), or red (negative). For months Jan-Aug only the active ferieår is shown on the left. For Sep-Dec both ferieår are shown (ending year on left, new year on right).
 - Year separators appear after December months spanning the full grid width with three states: (1) "Ingen feriedage overføres til næste ferieår" if balance is 0, (2) "X.XX feriedage overføres til næste ferieår" if within transfer limit, (3) "X.XX feriedage overføres til næste ferieår, Y.YY feriedage overføres ikke" if exceeding limit (Y.YY in bold red). All text is gray except the lost amount.
 - Holidays in config pane show date tooltip on hover and highlight the corresponding calendar day with a blue ring
 - Holidays are grouped by year in an accordion, filtered to only show years visible in the calendar
