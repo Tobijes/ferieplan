@@ -19,7 +19,7 @@ Danish vacation day planner — client-side React app with no backend.
 - When a ferieår expires, up to `maxTransferDays` (default 5, configurable) surplus days can transfer to the next ferieår; excess days are lost.
 - Default holiday data lives in `public/default.json` for 2026–2027. This file seeds the user's holiday list on first load (or after reset). Each holiday has a `date`, `name`, and `enabled` boolean. It also seeds `maxTransferDays`.
 - **Holiday merge**: On every load, holidays from `default.json` are merged into state. Any holidays whose date doesn't already exist in `state.holidays` are added with their default enabled state. Existing holidays and user-added holidays are preserved. This ensures new years/holidays added to `default.json` are picked up by existing users automatically. The merge is also triggered after importing a saved file.
-- The user can add custom holidays via a "Tilføj helligdag" button inside the Helligdage card content.
+- The user can add custom holidays via a "+" icon button in the top-right corner of the Helligdage card header.
 - Holidays (including user-added ones) are persisted in `state.holidays` in localStorage.
 - **Soft merge**: When loading state from localStorage or importing a saved file, missing properties are filled from `defaultState` via spread merge (`{ ...defaultState, ...stored }`). This ensures new config properties added in future versions are picked up by existing users without losing their data.
 
@@ -134,7 +134,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 
 - The top config bar ("Optjente feriedage" + "Fra dato") is always visible at the top of the page above the explanatory text, in a horizontal layout with `max-w-lg` centered (`mx-auto`) to prevent inputs from stretching too wide. Order: vacation days first, start date second. Labels wrap if needed.
 - Vertical spacing between settings button, config inputs, help text, and calendar uses a uniform `gap-4` (16px) on the parent flex-col, with `pt-4` for top padding. The settings button uses `mb-4` to match.
-- On desktop (lg+): the sidebar config cards (Indstillinger, Helligdage, Data) are always visible in the left sidebar. Config cards are not collapsible.
+- On desktop (lg+): the sidebar config cards (Data, Indstillinger, Helligdage) are always visible in the left sidebar. Config cards are not collapsible.
 - On mobile: a circular settings icon button (lucide-react `Settings`) appears above the top config bar inputs. Clicking it opens a slide-in drawer from the left containing the sidebar config cards, overlaid on a semi-dark backdrop (`bg-black/50`). Body scroll is locked when the drawer is open (`overflow: hidden` on body + `overscroll-contain` on drawer panel). Drawer auto-closes when resizing to desktop. Clicking the overlay closes the drawer.
 - Each config field in the settings card has a `HelpIcon` (CircleHelp from lucide-react) placed to the right of the input element. Click opens a Popover with a Danish description; click outside dismisses (touch-friendly, no hover required).
 - Dates before `startDate` are disabled and not selectable (status `before-start`)
@@ -154,7 +154,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 - `initDefaults` performs a merge: on first load (empty holidays) it does a full seed of holidays and config values; on subsequent loads it adds any holidays from `default.json` missing in state without overwriting user config. The merge is idempotent (returns prev unchanged if nothing new).
 - Context functions (`toggleDate`, `toggleHoliday`, `initDefaults`, `addHoliday`, `resetState`) have stable references (React Compiler handles this automatically)
 - Current year accordion is expanded by default; other years are collapsed
-- Users can add custom holidays via a "Tilføj helligdag" button (opens Popover with name field and native date picker) at the top of the Helligdage card content
+- Users can add custom holidays via a "+" icon button in the top-right corner of the Helligdage card header (opens Popover with name field and native date picker)
 - Number inputs (Optjente feriedage, Ekstra feriedage, Forskudsferie) use `DeferredNumberInput` — local state while typing, commits to global state on blur/Enter. This avoids recomputing `dayStatuses` on every keystroke. All are clamped to 0–99.
 - Drawer animations (`drawer-slide-in`, `drawer-overlay-in`) are defined as CSS keyframes in `index.css` and registered as Tailwind theme animations.
 

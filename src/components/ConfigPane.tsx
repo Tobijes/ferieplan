@@ -170,165 +170,6 @@ export function SidebarConfig() {
     <div className="space-y-4 p-4 w-full lg:w-80 shrink-0">
       <Card>
         <CardHeader>
-          <CardTitle>Indstillinger</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1">
-            <div className="flex gap-2 items-end">
-              <div className="grow-[3] basis-0 min-w-0 space-y-1">
-                <Label>Ekstra feriedage</Label>
-                <DeferredNumberInput
-                  min={0}
-                  max={99}
-                  value={state.extraDaysCount}
-                  onCommit={(v) =>
-                    setState((prev) => ({ ...prev, extraDaysCount: v }))
-                  }
-                />
-              </div>
-              <div className="grow-[2] basis-0 min-w-0 space-y-1">
-                <Label>Tildeles i</Label>
-                <Select
-                  value={String(state.extraDaysMonth)}
-                  onValueChange={(v) =>
-                    setState((prev) => ({ ...prev, extraDaysMonth: Number(v) }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTH_NAMES.map((name, i) => (
-                      <SelectItem key={i + 1} value={String(i + 1)}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="h-9 flex items-center">
-                <HelpIcon text="Ekstra feriedage (f.eks. 6. ferieuge) og hvilken måned de tildeles." />
-              </div>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="advanceDays">Forskudsferie</Label>
-            <div className="flex gap-2 items-center">
-              <DeferredNumberInput
-                id="advanceDays"
-                min={0}
-                max={99}
-                className="flex-1"
-                value={state.advanceDays}
-                onCommit={(v) =>
-                  setState((prev) => ({
-                    ...prev,
-                    advanceDays: v,
-                  }))
-                }
-              />
-              <HelpIcon text="Antal dage du må låne på forskud, før de er optjent." />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="maxTransferDays">Overførbare feriedage</Label>
-            <div className="flex gap-2 items-center">
-              <DeferredNumberInput
-                id="maxTransferDays"
-                min={0}
-                max={99}
-                className="flex-1"
-                value={state.maxTransferDays}
-                onCommit={(v) =>
-                  setState((prev) => ({
-                    ...prev,
-                    maxTransferDays: v,
-                  }))
-                }
-              />
-              <HelpIcon text="Maks antal ubrugte feriedage der kan overføres til næste ferieår." />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Helligdage</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="px-6 pb-3">
-            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full">
-                  <PlusIcon className="size-4 mr-2" />
-                  Tilføj helligdag
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 space-y-3">
-                <div className="space-y-1">
-                  <Label htmlFor="newHolidayName">Navn</Label>
-                  <Input
-                    id="newHolidayName"
-                    value={newHolidayName}
-                    onChange={(e) => setNewHolidayName(e.target.value)}
-                    placeholder="f.eks. Grundlovsdag"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="newHolidayDate">Dato</Label>
-                  <Input
-                    id="newHolidayDate"
-                    type="date"
-                    value={newHolidayDate}
-                    onChange={(e) => setNewHolidayDate(e.target.value)}
-                  />
-                </div>
-                <Button size="sm" className="w-full" onClick={handleAddHoliday} disabled={!newHolidayDate || !newHolidayName.trim()}>
-                  Tilføj
-                </Button>
-              </PopoverContent>
-            </Popover>
-          </div>
-          <Accordion type="multiple" defaultValue={[String(new Date().getFullYear())]}>
-            {Object.entries(holidaysByYear).map(([year, yearHolidays]) => (
-              <AccordionItem key={year} value={year}>
-                <AccordionTrigger className="px-6 py-3 text-sm">
-                  {year}
-                </AccordionTrigger>
-                <AccordionContent className="px-6 space-y-2 pb-3">
-                  {yearHolidays.map((h) => (
-                    <Tooltip key={h.date}>
-                      <TooltipTrigger asChild>
-                        <div
-                          className="flex items-center justify-between text-sm cursor-pointer select-none hover:bg-muted rounded-md px-1 -mx-1"
-                          onMouseEnter={() => setHighlightedDate(h.date)}
-                          onMouseLeave={() => setHighlightedDate(null)}
-                          onClick={() => toggleHoliday(h.date)}
-                        >
-                          <span>{h.name}</span>
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <Switch
-                              checked={!!state.enabledHolidays[h.date]}
-                              onCheckedChange={() => toggleHoliday(h.date)}
-                            />
-                          </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="text-xs">
-                        {format(new Date(h.date + 'T00:00:00'), 'EEEE d. MMMM yyyy', { locale: da })}
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Data</CardTitle>
         </CardHeader>
         <CardContent>
@@ -431,6 +272,163 @@ export function SidebarConfig() {
           </AlertDialog>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Indstillinger</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            <div className="flex gap-2 items-end">
+              <div className="grow-[3] basis-0 min-w-0 space-y-1">
+                <Label>Ekstra feriedage</Label>
+                <DeferredNumberInput
+                  min={0}
+                  max={99}
+                  value={state.extraDaysCount}
+                  onCommit={(v) =>
+                    setState((prev) => ({ ...prev, extraDaysCount: v }))
+                  }
+                />
+              </div>
+              <div className="grow-[2] basis-0 min-w-0 space-y-1">
+                <Label>Tildeles i</Label>
+                <Select
+                  value={String(state.extraDaysMonth)}
+                  onValueChange={(v) =>
+                    setState((prev) => ({ ...prev, extraDaysMonth: Number(v) }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTH_NAMES.map((name, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="h-9 flex items-center">
+                <HelpIcon text="Ekstra feriedage (f.eks. 6. ferieuge) og hvilken måned de tildeles." />
+              </div>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="advanceDays">Forskudsferie</Label>
+            <div className="flex gap-2 items-center">
+              <DeferredNumberInput
+                id="advanceDays"
+                min={0}
+                max={99}
+                className="flex-1"
+                value={state.advanceDays}
+                onCommit={(v) =>
+                  setState((prev) => ({
+                    ...prev,
+                    advanceDays: v,
+                  }))
+                }
+              />
+              <HelpIcon text="Antal dage du må låne på forskud, før de er optjent." />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="maxTransferDays">Overførbare feriedage</Label>
+            <div className="flex gap-2 items-center">
+              <DeferredNumberInput
+                id="maxTransferDays"
+                min={0}
+                max={99}
+                className="flex-1"
+                value={state.maxTransferDays}
+                onCommit={(v) =>
+                  setState((prev) => ({
+                    ...prev,
+                    maxTransferDays: v,
+                  }))
+                }
+              />
+              <HelpIcon text="Maks antal ubrugte feriedage der kan overføres til næste ferieår." />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Helligdage</CardTitle>
+          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-7 -mr-1">
+                <PlusIcon className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="newHolidayName">Navn</Label>
+                <Input
+                  id="newHolidayName"
+                  value={newHolidayName}
+                  onChange={(e) => setNewHolidayName(e.target.value)}
+                  placeholder="f.eks. Grundlovsdag"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="newHolidayDate">Dato</Label>
+                <Input
+                  id="newHolidayDate"
+                  type="date"
+                  value={newHolidayDate}
+                  onChange={(e) => setNewHolidayDate(e.target.value)}
+                />
+              </div>
+              <Button size="sm" className="w-full" onClick={handleAddHoliday} disabled={!newHolidayDate || !newHolidayName.trim()}>
+                Tilføj
+              </Button>
+            </PopoverContent>
+          </Popover>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Accordion type="multiple" defaultValue={[String(new Date().getFullYear())]}>
+            {Object.entries(holidaysByYear).map(([year, yearHolidays]) => (
+              <AccordionItem key={year} value={year}>
+                <AccordionTrigger className="px-6 py-3 text-sm">
+                  {year}
+                </AccordionTrigger>
+                <AccordionContent className="px-6 space-y-2 pb-3">
+                  {yearHolidays.map((h) => (
+                    <Tooltip key={h.date}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="flex items-center justify-between text-sm cursor-pointer select-none hover:bg-muted rounded-md px-1 -mx-1"
+                          onMouseEnter={() => setHighlightedDate(h.date)}
+                          onMouseLeave={() => setHighlightedDate(null)}
+                          onClick={() => toggleHoliday(h.date)}
+                        >
+                          <span>{h.name}</span>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Switch
+                              checked={!!state.enabledHolidays[h.date]}
+                              onCheckedChange={() => toggleHoliday(h.date)}
+                            />
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="text-xs">
+                        {format(new Date(h.date + 'T00:00:00'), 'EEEE d. MMMM yyyy', { locale: da })}
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
