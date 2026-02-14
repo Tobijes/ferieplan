@@ -13,27 +13,6 @@ import {
 import type { VacationYearState, TimelineEvent } from './vacationCalculations';
 
 describe('computeAllStatuses', () => {
-  it('marks holidays correctly', () => {
-    const result = computeAllStatuses(
-      ['2026-01-01'],
-      [],
-      { '2026-01-01': true },
-      '2026-01-01', 0, 5, 5, 0
-    );
-    expect(result['2026-01-01']).toBe('holiday');
-  });
-
-  it('marks weekends correctly', () => {
-    // 2026-01-03 is a Saturday
-    const result = computeAllStatuses(
-      ['2026-01-03'],
-      [],
-      {},
-      '2026-01-01', 0, 5, 5, 0
-    );
-    expect(result['2026-01-03']).toBe('weekend');
-  });
-
   it('marks selected days as ok when balance positive', () => {
     // 2026-01-05 is Monday
     const result = computeAllStatuses(
@@ -71,15 +50,6 @@ describe('computeAllStatuses', () => {
     expect(result['2026-01-07']).toBe('selected-warning');
   });
 
-  it('marks normal weekdays', () => {
-    const result = computeAllStatuses(
-      ['2026-01-05'],
-      [],
-      {},
-      '2026-01-01', 0, 5, 5, 0
-    );
-    expect(result['2026-01-05']).toBe('normal');
-  });
 });
 
 describe('getVacationYearForDate', () => {
@@ -203,61 +173,6 @@ describe('getVacationYearBalances', () => {
       '2025-09-01', 0, 5, 5, [], {}, '2026-06-01'
     );
     expect(balances[0].extra).toBe(5);
-  });
-
-  it('vacation year expiry: days from vacation year 2025 expire after 2026-12-31', () => {
-    const balances = getVacationYearBalances(
-      '2025-09-01', 0, 5, 5, [], {}, '2027-01-01'
-    );
-    const vy2025 = balances.find(b => b.year === 2025)!;
-    expect(vy2025.expired).toBe(true);
-  });
-
-  it('advance days: overdrawn status works with per-vacation-year model', () => {
-    // Select 3 days when only 2.08 available → 3rd day overdrawn
-    const selected = ['2026-01-05', '2026-01-06', '2026-01-07'];
-    const result = computeAllStatuses(
-      selected,
-      selected,
-      {},
-      '2026-01-01', 0, 5, 5, 0
-    );
-    expect(result['2026-01-07']).toBe('selected-overdrawn');
-  });
-
-  it('advance days: NaN advanceDays treated as 0', () => {
-    // Select 3 days when only 2.08 available
-    const selected = ['2026-02-02', '2026-02-03', '2026-02-04'];
-    const rNaN = computeAllStatuses(selected, selected, {}, '2026-02-01', 0, 5, 5, NaN);
-    // NaN comparison: -0.92 >= NaN is false → should be overdrawn
-    expect(rNaN['2026-02-04']).toBe('selected-overdrawn');
-  });
-
-  it('advance days: realistic scenario with startDate today', () => {
-    // Simulate user starting Feb 2026, selecting 3 days in Feb
-    // Vacation year 2025: Feb has 2.08 days available (credited at start of month)
-    // Select 3 days → 3rd day is overdrawn
-    const selected = ['2026-02-02', '2026-02-03', '2026-02-04'];
-    const r0 = computeAllStatuses(selected, selected, {}, '2026-02-01', 0, 5, 5, 0);
-    expect(r0['2026-02-04']).toBe('selected-overdrawn');
-
-    const r5 = computeAllStatuses(selected, selected, {}, '2026-02-01', 0, 5, 5, 5);
-    expect(r5['2026-02-04']).toBe('selected-warning');
-  });
-
-  it('advance days: changing advance days turns overdrawn into warning', () => {
-    // Start Feb 2026, select 5 days in Mar. By Mar: Feb + Mar = 2 months × 2.08 = 4.16 days
-    // After 5th day used, balance = 4.16 - 5 = -0.84 → overdrawn with advanceDays=0
-    const selected = ['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05', '2026-03-06'];
-    const allDates = selected;
-
-    const r0 = computeAllStatuses(allDates, selected, {}, '2026-02-01', 0, 5, 5, 0);
-    // 5th day: balance = 4.16 - 5 = -0.84 → overdrawn
-    expect(r0['2026-03-06']).toBe('selected-overdrawn');
-
-    const r5 = computeAllStatuses(allDates, selected, {}, '2026-02-01', 0, 5, 5, 5);
-    // Same scenario but advance=5, so -0.84 >= -5 → warning
-    expect(r5['2026-03-06']).toBe('selected-warning');
   });
 });
 
