@@ -24,11 +24,11 @@ function formatVacationYearLabel(year: number): string {
   return `${y1.toString().padStart(2, '0')}/${y2.toString().padStart(2, '0')}`;
 }
 
-function VacationYearBadge({ year, balance }: { year: number; balance: number }) {
+function VacationYearBadge({ year, balance, advanceDays }: { year: number; balance: number; advanceDays: number }) {
   return (
     <span className="text-xs whitespace-nowrap">
       <span className="text-muted-foreground">{formatVacationYearLabel(year)}:</span>{' '}
-      <span className={`${balance < 0 ? 'text-red-600' : balance === 0 ? 'text-muted-foreground' : 'text-green-600'} font-medium`}>{balance.toFixed(2)}</span>
+      <span className={`${balance > 0 ? 'text-green-600' : balance === 0 ? 'text-muted-foreground' : balance >= -advanceDays ? 'text-yellow-500' : 'text-red-600'} font-medium`}>{balance.toFixed(2)}</span>
     </span>
   );
 }
@@ -62,7 +62,7 @@ function MonthHeader({ month }: { month: Date }) {
     <div className="flex items-center justify-between mb-1 gap-1">
       <div className="flex-1 min-w-0">
         {leftBalance ? (
-          <VacationYearBadge year={leftBalance.year} balance={leftBalance.balance} />
+          <VacationYearBadge year={leftBalance.year} balance={leftBalance.balance} advanceDays={state.advanceDays} />
         ) : (
           <span className="text-xs text-transparent">--/--: 0.00</span>
         )}
@@ -72,7 +72,7 @@ function MonthHeader({ month }: { month: Date }) {
       </h3>
       <div className="flex-1 min-w-0 text-right">
         {rightBalance ? (
-          <VacationYearBadge year={rightBalance.year} balance={rightBalance.balance} />
+          <VacationYearBadge year={rightBalance.year} balance={rightBalance.balance} advanceDays={state.advanceDays} />
         ) : (
           <span className="text-xs text-transparent">--/--: 0.00</span>
         )}
