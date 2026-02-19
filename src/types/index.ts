@@ -45,3 +45,5 @@ export type DayStatus =
   | 'selected-warning'
   | 'selected-overdrawn'
   | 'before-start';
+
+export type SyncStatus = 'disconnected' | 'syncing' | 'synced' | 'pending' | 'error';
