@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { VacationProvider } from '@/context/VacationContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { VacationProvider, useVacation } from '@/context/VacationContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { TopConfigBar, SidebarConfig } from './ConfigPane';
 import { CalendarView } from './CalendarView';
+import { SyncConflictDialog } from './SyncConflictDialog';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 function AppContent() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const { syncConflict, resolveSyncConflict } = useVacation();
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -53,6 +56,14 @@ function AppContent() {
         </div>
       )}
 
+      {/* Cloud sync conflict dialog */}
+      {syncConflict && (
+        <SyncConflictDialog
+          open={true}
+          onChoice={resolveSyncConflict}
+        />
+      )}
+
       <Toaster position="bottom-center" />
     </>
   );
@@ -60,10 +71,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <VacationProvider>
-      <TooltipProvider delayDuration={200}>
-        <AppContent />
-      </TooltipProvider>
-    </VacationProvider>
+    <AuthProvider>
+      <VacationProvider>
+        <TooltipProvider delayDuration={200}>
+          <AppContent />
+        </TooltipProvider>
+      </VacationProvider>
+    </AuthProvider>
   );
 }

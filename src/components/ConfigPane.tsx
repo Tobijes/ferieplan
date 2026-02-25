@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
-import { useVacation, defaultState } from '@/context/VacationContext';
+import { useVacation } from '@/context/VacationContext';
+import { useAuth } from '@/context/AuthContext';
+import { environmentName } from '@/lib/firebase';
 import { useDefaults } from '@/hooks/useHolidays';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, PlusIcon, Settings, Trash2, Upload } from 'lucide-react';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CircleCheck, CircleDot, CircleMinus, Loader2, LogIn, LogOut, PlusIcon, Settings, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LoginDialog } from '@/components/LoginDialog';
+import { toast } from 'sonner';
+import type { SyncStatus } from '@/types';
 
 function DeferredNumberInput({ value, onCommit, ...props }: Omit<ComponentProps<typeof Input>, 'onChange' | 'onBlur' | 'value'> & { value: number; onCommit: (v: number) => void }) {
   const [local, setLocal] = useState(String(value));
@@ -69,9 +74,47 @@ import {
 } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { da } from 'date-fns/locale';
-import type { VacationState } from '@/types';
 import { HelpIcon } from '@/components/HelpIcon';
 
+
+const SYNC_MESSAGES: Record<SyncStatus, string> = {
+  disconnected: 'Ikke forbundet til skyen.',
+  syncing: 'Synkroniserer med skyen...',
+  synced: 'Alle ændringer er gemt i skyen.',
+  pending: 'Lokale ændringer afventer synkronisering...',
+  error: 'Synkronisering fejlede. Prøver igen ved næste ændring.',
+};
+
+function SyncStatusIcon({ status }: { status: SyncStatus }) {
+  const handleClick = () => {
+    toast(SYNC_MESSAGES[status], { duration: 3000 });
+  };
+
+  let icon: React.ReactNode;
+  switch (status) {
+    case 'disconnected':
+      icon = <CircleMinus className="size-5 text-gray-400" />;
+      break;
+    case 'syncing':
+      icon = <Loader2 className="size-5 text-gray-400 animate-spin" />;
+      break;
+    case 'synced':
+      icon = <CircleCheck className="size-5 text-green-500" />;
+      break;
+    case 'pending':
+      icon = <CircleDot className="size-5 text-yellow-500" />;
+      break;
+    case 'error':
+      icon = <CircleMinus className="size-5 text-red-500" />;
+      break;
+  }
+
+  return (
+    <button onClick={handleClick} className="cursor-pointer p-1 -m-1">
+      {icon}
+    </button>
+  );
+}
 
 const MONTH_NAMES = [
   'Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni',
@@ -141,7 +184,8 @@ export function TopConfigBar({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
 }
 
 export function SidebarConfig() {
-  const { state, setState, toggleHoliday, addHoliday, resetState, setHighlightedDate, visibleYears } = useVacation();
+  const { state, setState, toggleHoliday, addHoliday, resetState, setHighlightedDate, visibleYears, syncStatus } = useVacation();
+  const { user, logout } = useAuth();
 
   const yearSet = new Set(visibleYears.map(String));
   const holidaysByYear: Record<string, typeof state.holidays> = {};
@@ -154,9 +198,7 @@ export function SidebarConfig() {
   const [newHolidayDate, setNewHolidayDate] = useState('');
   const [newHolidayName, setNewHolidayName] = useState('');
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [pendingImport, setPendingImport] = useState<VacationState | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   function handleAddHoliday() {
     if (!newHolidayDate || !newHolidayName.trim()) return;
@@ -170,106 +212,101 @@ export function SidebarConfig() {
     <div className="space-y-4 p-4 w-full lg:w-80 shrink-0">
       <Card>
         <CardHeader>
-          <CardTitle>Data</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            Data
+            {user && (
+              <span className="text-xs text-muted-foreground font-normal truncate">
+                {user.email || user.displayName || 'Bruger'}
+              </span>
+            )}
+          </CardTitle>
+          <CardAction>
+            <SyncStatusIcon status={syncStatus} />
+          </CardAction>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-2 justify-center">
-            <Button
-              variant="outline"
-              className="flex-1 h-auto flex-col gap-1 py-3 cursor-pointer"
-              onClick={() => {
-                const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'ferieplan.json';
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-            >
-              <Download className="size-5" />
-              <span className="text-xs">Gem</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1 h-auto flex-col gap-1 py-3 cursor-pointer"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="size-5" />
-              <span className="text-xs">Indlæs</span>
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+        <CardContent className="space-y-3">
+          {user ? (
+            <>
+              <div className="flex gap-2 justify-center">
                 <Button
                   variant="outline"
-                  className="flex-1 h-auto flex-col gap-1 py-3 cursor-pointer hover:bg-red-100 hover:text-red-700 hover:border-red-300"
+                  className="flex-1 h-auto flex-col gap-1 py-3 cursor-pointer"
+                  onClick={logout}
                 >
-                  <Trash2 className="size-5" />
-                  <span className="text-xs">Ryd</span>
+                  <LogOut className="size-5" />
+                  <span className="text-xs">Log ud</span>
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Er du sikker?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Dette sletter alle dine indstillinger, valgte feriedage og gemte data. Handlingen kan ikke fortrydes.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuller</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-red-600 hover:bg-red-700"
-                    onClick={resetState}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-auto flex-col gap-1 py-3 cursor-pointer hover:bg-red-100 hover:text-red-700 hover:border-red-300"
+                    >
+                      <Trash2 className="size-5" />
+                      <span className="text-xs">Ryd</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Er du sikker?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Dette sletter alle dine indstillinger, valgte feriedage og gemte data. Handlingen kan ikke fortrydes.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuller</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-red-600 hover:bg-red-700"
+                        onClick={resetState}
+                      >
+                        Ryd alting
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </>
+          ) : (
+            <div className="flex gap-2 justify-center">
+              <Button
+                variant="outline"
+                className="flex-1 h-auto flex-col gap-1 py-3 cursor-pointer"
+                onClick={() => setLoginOpen(true)}
+              >
+                <LogIn className="size-5" />
+                <span className="text-xs">Log ind</span>
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-auto flex-col gap-1 py-3 cursor-pointer hover:bg-red-100 hover:text-red-700 hover:border-red-300"
                   >
-                    Ryd alting
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              const reader = new FileReader();
-              reader.onload = () => {
-                try {
-                  const data = { ...defaultState, ...JSON.parse(reader.result as string) };
-                  setPendingImport(data);
-                  setImportDialogOpen(true);
-                } catch {
-                  alert('Ugyldig JSON-fil.');
-                }
-              };
-              reader.readAsText(file);
-              e.target.value = '';
-            }}
-          />
-          <AlertDialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Indlæs plan?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Dette erstatter alle dine nuværende indstillinger og valgte feriedage med data fra filen. Handlingen kan ikke fortrydes.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setPendingImport(null)}>Annuller</AlertDialogCancel>
-                <AlertDialogAction onClick={() => {
-                  if (pendingImport) {
-                    setState(pendingImport);
-                    setPendingImport(null);
-                  }
-                }}>
-                  Indlæs
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                    <Trash2 className="size-5" />
+                    <span className="text-xs">Ryd</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Er du sikker?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Dette sletter alle dine indstillinger, valgte feriedage og gemte data. Handlingen kan ikke fortrydes.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuller</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-red-600 hover:bg-red-700"
+                      onClick={resetState}
+                    >
+                      Ryd alting
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+          <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
         </CardContent>
       </Card>
 
@@ -429,6 +466,9 @@ export function SidebarConfig() {
         </CardContent>
       </Card>
 
+      {environmentName && (
+        <p className="text-xs text-muted-foreground text-center">{environmentName}</p>
+      )}
     </div>
   );
 }

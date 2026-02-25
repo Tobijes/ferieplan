@@ -6,7 +6,7 @@ Always remember to update this document (CLAUDE.md) when
 
 # Ferieplan
 
-Danish vacation day planner — client-side React app with no backend.
+Danish vacation day planner — client-side React app with optional Firebase cloud sync.
 
 ## Background: Danish Vacation System
 
@@ -23,15 +23,39 @@ Danish vacation day planner — client-side React app with no backend.
 - Holidays (including user-added ones) are persisted in `state.holidays` in localStorage.
 - **Soft merge**: When loading state from localStorage or importing a saved file, missing properties are filled from `defaultState` via spread merge (`{ ...defaultState, ...stored }`). This ensures new config properties added in future versions are picked up by existing users without losing their data.
 
+## Firebase Integration (Optional Cloud Sync)
+
+- **Authentication**: Email/Password (with in-app registration).
+- **Storage**: Cloud Storage for Firebase. State is stored as a JSON file at `users/{uid}/ferieplan.json`.
+- **Login is optional**: The app works identically without login (localStorage only). No Firebase calls are made when not logged in.
+- **Async initialization**: `initFirebase()` in `src/lib/firebase.ts` fetches `/config.json` (runtime config from Docker entrypoint) and falls back to `import.meta.env.VITE_*` (build-time, for local dev). Firebase only initializes if `apiKey` and `projectId` are set. Without them, `auth` and `storage` remain `null`.
+- **Auth flow**: `AuthContext` listens to `onAuthStateChanged`. Provides `signInWithEmail(email, password)` and `registerWithEmail(email, password)` (uses `createUserWithEmailAndPassword`).
+- **Generation-based sync**: Cloud Storage's `generation` metadata field is used for optimistic concurrency. The generation string is stored locally in `ferieplan-cloud-generation` localStorage key (separate from VacationState). On page reload, a metadata-only check (`getCloudGeneration`) compares local and cloud generations — if they match, no download is needed.
+- **Debounced upload (2.5s)**: Local edits set sync status to `'pending'`. After 2.5 seconds of no further edits, the debounce fires: checks cloud generation matches expected, then uploads. If cloud generation is newer (another device edited), shows `SyncConflictDialog` with "overwrite" or "fetch newest" choices.
+- **Initial sync on login**:
+  - If local generation exists (page reload): metadata-only check, download only if cloud is newer
+  - Fresh login with cloud data (existing account) → silently download (cloud is source of truth)
+  - Fresh login with no cloud data (new account) → upload local data to seed the cloud
+- **Logout**: Clears generation from localStorage but keeps local data.
+- **Data card UI**:
+  - Sync status icon in top-right of Data card header (via `CardAction`): gray `CircleMinus` (disconnected), gray `Loader2` spinner (syncing), green `CircleCheck` (synced), yellow `CircleDot` (pending local edits), red `CircleMinus` (error). Clicking shows a toast with status description.
+  - Logged out: "Log ind" button (opens LoginDialog) + "Ryd" button
+  - Logged in: user email in card header title, "Log ud" button + "Ryd" button
+- **Security rules**: Each user can only read/write their own `users/{uid}/ferieplan.json` file.
+- **Environment variables**: For local dev, use `VITE_FIREBASE_*` in `.env`. For Docker, pass `FIREBASE_*` (without `VITE_` prefix) as runtime env vars — the entrypoint script (`custom-entrypoint.sh`) generates `/config.json` from them. See `.env.example`.
+- **Environment label**: A small text label at the bottom of the sidebar shows the environment name (`VITE_ENVIRONMENT_NAME` for local dev / `ENVIRONMENT_NAME` for Docker). Values: "Local" (`.env`), "Development" (`compose.dev.yml`), "Production" (`compose.prod.yml`), "Preview" (set externally). Hidden if not set. The value is read during `initFirebase()` and exported as `environmentName` from `firebase.ts`.
+
 ## Tech Stack
 
 - Vite + React 19 + TypeScript (strict mode)
 - React Compiler (`babel-plugin-react-compiler`) for automatic memoization
 - Tailwind CSS v4 (via `@tailwindcss/vite` plugin) + shadcn/ui (new-york style)
 - date-fns with `da` locale for all date formatting
-- localStorage for state persistence
+- Firebase Authentication (Email/Password) + Cloud Storage for optional cloud sync
+- localStorage for state persistence (primary); Cloud Storage as sync layer when logged in
 - Vitest for unit testing
 - Path alias: `@/` → `src/`
+- Environment variables: Firebase config via `VITE_FIREBASE_*` in `.env` (see `.env.example`)
 
 ## Commands
 
@@ -46,30 +70,39 @@ Danish vacation day planner — client-side React app with no backend.
 ```
 src/
 ├── components/
-│   ├── ui/                # shadcn components (accordion, alert-dialog, button, card, collapsible, input, label, popover, scroll-area, select, switch, tooltip)
-│   ├── App.tsx            # Root: VacationProvider + TooltipProvider + top config bar + responsive layout (sidebar on desktop, drawer on mobile)
+│   ├── ui/                # shadcn components (accordion, alert-dialog, button, card, dialog, input, label, popover, select, switch, tooltip)
+│   ├── App.tsx            # Root: AuthProvider + VacationProvider + TooltipProvider + responsive layout + SyncConflictDialog
 │   ├── HelpIcon.tsx       # Reusable "?" popover icon (click-to-open, click-outside-to-close) using lucide-react CircleHelp
 │   ├── ConfigPane.tsx     # Exports TopConfigBar (start date + initial days) and SidebarConfig (settings, holidays, data cards)
+│   ├── LoginDialog.tsx    # Login dialog (email/password form with registration toggle)
+│   ├── SyncConflictDialog.tsx # Cloud sync conflict dialog (upload local / download cloud)
 │   ├── CalendarView.tsx   # Right pane: scrollable grid of months based on visibleYears, year separators
 │   ├── CalendarMonth.tsx  # Single month: header with ferieår balances + 7-col day grid (Mon–Sun)
 │   └── CalendarDay.tsx    # Day cell: colored circle (no tooltips)
 ├── context/
-│   └── VacationContext.tsx # Global state with localStorage persistence
+│   ├── AuthContext.tsx     # Firebase Auth context (Email/Password), provides user/loading/signInWithEmail/registerWithEmail/logout
+│   └── VacationContext.tsx # Global state with localStorage persistence + generation-based cloud sync when logged in
 ├── hooks/
 │   ├── useHolidays.ts     # useDefaults() — fetches public/default.json (DefaultData)
 │   ├── useLocalStorage.ts # Generic localStorage hook
 │   └── useMediaQuery.ts   # Media query hook for responsive behavior
 ├── lib/
 │   ├── utils.ts           # cn() helper (shadcn)
+│   ├── firebase.ts        # Firebase app init, exports auth + storage (null if unconfigured)
+│   ├── cloudStorage.ts    # saveStateToCloud / loadStateFromCloud / getCloudGeneration (Cloud Storage read/write with generation tracking)
 │   ├── dateUtils.ts       # DA_DAY_NAMES, formatMonthYear, generateMonths, toISODate
 │   ├── vacationCalculations.ts  # Balance logic, day status determination
 │   └── vacationCalculations.test.ts  # Vitest tests for vacation calculations
 ├── types/
-│   └── index.ts           # Holiday, DefaultData, VacationState, DayStatus, VacationYearBalance
+│   └── index.ts           # Holiday, DefaultData, VacationState, DayStatus, VacationYearBalance, SyncStatus
 ├── main.tsx
 └── index.css              # Tailwind imports + CSS variables (light theme only)
 public/
 └── default.json           # Default holidays 2026–2027 + extraHoliday config
+.env.example               # Firebase config env var template (dev + Docker)
+Dockerfile                 # Multi-stage: Node build → NGINX Alpine runtime
+custom-entrypoint.sh       # Generates /config.json from env vars, delegates to nginx entrypoint
+nginx.conf                 # NGINX config (SPA routing, health endpoint)
 ```
 
 ## State Shape (persisted to localStorage as `ferieplan-state`)
@@ -104,6 +137,10 @@ interface Holiday {
   enabled: boolean; // default enabled state (used when seeding)
 }
 ```
+
+## Cloud Sync Metadata (persisted to localStorage as `ferieplan-cloud-generation`)
+
+A single string value: the Firebase Cloud Storage `generation` of the last synced `ferieplan.json` file. Set after every successful upload or download. Cleared on logout (local data is kept). Used on page reload to skip downloading when cloud hasn't changed.
 
 ## Vacation Calculation Logic
 
@@ -150,7 +187,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 - React Compiler automatically handles memoization (no manual `useMemo`, `useCallback`, or `React.memo` needed)
 - Holiday highlight ring uses a DOM-based approach (not React state) for performance: `setHighlightedDate` toggles a `data-highlighted` attribute on `[data-date]` buttons via `calendarRef`, styled with Tailwind `data-[highlighted=true]:ring-*` selectors. This avoids re-rendering all CalendarDay components on hover.
 - Holiday labels in ConfigPane are clickable to toggle the holiday (same as the switch)
-- "Ryd alting" button in the Data card resets state in-place via `resetState()` (no page reload). After reset, `initDefaults` re-seeds holidays from `default.json` on next render.
+- "Ryd alting" button in the Data card resets state in-place via `resetState()` (no page reload). When logged in, it clears the local generation so the debounced sync uploads the reset state to cloud. After reset, `initDefaults` re-seeds holidays from `default.json` on next render.
 - `initDefaults` performs a merge: on first load (empty holidays) it does a full seed of holidays and config values; on subsequent loads it adds any holidays from `default.json` missing in state without overwriting user config. The merge is idempotent (returns prev unchanged if nothing new).
 - Context functions (`toggleDate`, `toggleHoliday`, `initDefaults`, `addHoliday`, `resetState`) have stable references (React Compiler handles this automatically)
 - Current year accordion is expanded by default; other years are collapsed

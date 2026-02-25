@@ -3,7 +3,8 @@ services:
     build:
       context: .              
       dockerfile: Dockerfile
-    pull_policy: always
+    env_file:
+      - .env
     restart: always
     healthcheck:
       # Use curl to check the local index page; -f fails silently on server errors
