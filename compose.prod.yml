@@ -3,14 +3,8 @@ services:
     build:
       context: .              
       dockerfile: Dockerfile
-    environment:
-      ENVIRONMENT_NAME: ${ENVIRONMENT_NAME:?}
-      FIREBASE_API_KEY: ${FIREBASE_API_KEY:?}
-      FIREBASE_AUTH_DOMAIN: ${FIREBASE_AUTH_DOMAIN:?}
-      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:?}
-      FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET:?}
-      FIREBASE_MESSAGING_SENDER_ID: ${FIREBASE_MESSAGING_SENDER_ID:?}
-      FIREBASE_APP_ID: ${FIREBASE_APP_ID:?}
+    env_file:
+      - .env
     restart: always
     healthcheck:
       # Use curl to check the local index page; -f fails silently on server errors
