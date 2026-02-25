@@ -4,6 +4,7 @@
 # For local dev, import.meta.env (from .env) is used as fallback.
 cat <<EOF > /usr/share/nginx/html/config.json
 {
+  "ENVIRONMENT_NAME": "${ENVIRONMENT_NAME:-}",
   "FIREBASE_API_KEY": "${FIREBASE_API_KEY:-}",
   "FIREBASE_AUTH_DOMAIN": "${FIREBASE_AUTH_DOMAIN:-}",
   "FIREBASE_PROJECT_ID": "${FIREBASE_PROJECT_ID:-}",

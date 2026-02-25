@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { useVacation } from '@/context/VacationContext';
 import { useAuth } from '@/context/AuthContext';
+import { environmentName } from '@/lib/firebase';
 import { useDefaults } from '@/hooks/useHolidays';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CircleCheck, CircleDot, CircleMinus, Loader2, LogIn, LogOut, PlusIcon, Settings, Trash2 } from 'lucide-react';
@@ -465,6 +466,9 @@ export function SidebarConfig() {
         </CardContent>
       </Card>
 
+      {environmentName && (
+        <p className="text-xs text-muted-foreground text-center">{environmentName}</p>
+      )}
     </div>
   );
 }

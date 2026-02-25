@@ -5,9 +5,11 @@ import { getStorage, type FirebaseStorage } from 'firebase/storage';
 let auth: Auth | null = null;
 let storage: FirebaseStorage | null = null;
 let isConfigured = false;
+let environmentName = '';
 let initPromise: Promise<void> | null = null;
 
 interface RuntimeConfig {
+  ENVIRONMENT_NAME?: string;
   FIREBASE_API_KEY?: string;
   FIREBASE_AUTH_DOMAIN?: string;
   FIREBASE_PROJECT_ID?: string;
@@ -36,6 +38,8 @@ export function initFirebase(): Promise<void> {
   initPromise = (async () => {
     const runtime = await fetchRuntimeConfig();
 
+    environmentName = runtime.ENVIRONMENT_NAME || import.meta.env.VITE_ENVIRONMENT_NAME || '';
+
     const config = {
       apiKey: runtime.FIREBASE_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY || '',
       authDomain: runtime.FIREBASE_AUTH_DOMAIN || import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
@@ -57,4 +61,4 @@ export function initFirebase(): Promise<void> {
   return initPromise;
 }
 
-export { auth, storage, isConfigured };
+export { auth, storage, isConfigured, environmentName };
