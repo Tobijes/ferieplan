@@ -1,7 +1,5 @@
 #!/bin/sh
-# Generate runtime config from Docker environment variables.
-# The app fetches /config.json at startup to read Firebase config.
-# For local dev, import.meta.env (from .env) is used as fallback.
+# Generate runtime config, then delegate to nginx's entrypoint (template processing + start).
 cat <<EOF > /usr/share/nginx/html/config.json
 {
   "ENVIRONMENT_NAME": "${ENVIRONMENT_NAME:-}",
@@ -14,4 +12,4 @@ cat <<EOF > /usr/share/nginx/html/config.json
 }
 EOF
 
-exec nginx -g 'daemon off;'
+exec /docker-entrypoint.sh nginx -g 'daemon off;'

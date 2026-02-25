@@ -42,7 +42,7 @@ Danish vacation day planner — client-side React app with optional Firebase clo
   - Logged out: "Log ind" button (opens LoginDialog) + "Ryd" button
   - Logged in: user email in card header title, "Log ud" button + "Ryd" button
 - **Security rules**: Each user can only read/write their own `users/{uid}/ferieplan.json` file.
-- **Environment variables**: For local dev, use `VITE_FIREBASE_*` in `.env`. For Docker, pass `FIREBASE_*` (without `VITE_` prefix) as runtime env vars — the entrypoint script (`docker-entrypoint.sh`) generates `/config.json` from them. See `.env.example`.
+- **Environment variables**: For local dev, use `VITE_FIREBASE_*` in `.env`. For Docker, pass `FIREBASE_*` (without `VITE_` prefix) as runtime env vars — the entrypoint script (`custom-entrypoint.sh`) generates `/config.json` from them. See `.env.example`.
 - **Environment label**: A small text label at the bottom of the sidebar shows the environment name (`VITE_ENVIRONMENT_NAME` for local dev / `ENVIRONMENT_NAME` for Docker). Values: "Local" (`.env`), "Development" (`compose.dev.yml`), "Production" (`compose.prod.yml`), "Preview" (set externally). Hidden if not set. The value is read during `initFirebase()` and exported as `environmentName` from `firebase.ts`.
 
 ## Tech Stack
@@ -101,7 +101,7 @@ public/
 └── default.json           # Default holidays 2026–2027 + extraHoliday config
 .env.example               # Firebase config env var template (dev + Docker)
 Dockerfile                 # Multi-stage: Node build → NGINX Alpine runtime
-docker-entrypoint.sh       # Generates /config.json from env vars, then starts NGINX
+custom-entrypoint.sh       # Generates /config.json from env vars, delegates to nginx entrypoint
 nginx.conf                 # NGINX config (SPA routing, health endpoint)
 ```
 

@@ -21,8 +21,8 @@ COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 COPY --from=build /app/dist /usr/share/nginx/html
 
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY custom-entrypoint.sh /custom-entrypoint.sh
+RUN chmod +x /custom-entrypoint.sh
 
 EXPOSE 80
-CMD ["/docker-entrypoint.sh"]
+CMD ["/custom-entrypoint.sh"]
