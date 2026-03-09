@@ -44,7 +44,7 @@ function MonthHeader({ month }: { month: Date }) {
   const balances = getVacationYearBalances(
     state.startDate, state.initialVacationDays, state.extraDaysMonth,
     state.extraDaysCount, state.selectedDates, state.enabledHolidays,
-    endOfMonthDate, state.maxTransferDays
+    endOfMonthDate, state.maxTransferDays, state.earnFromSameMonth
   );
 
   // Determine active vacation year(s) for this month

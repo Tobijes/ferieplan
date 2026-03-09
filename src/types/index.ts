@@ -12,6 +12,7 @@ export interface DefaultData {
   };
   advanceDays: number;
   maxTransferDays: number;
+  earnFromSameMonth: boolean;
 }
 
 export interface VacationState {
@@ -24,6 +25,7 @@ export interface VacationState {
   holidays: Holiday[];
   advanceDays: number;
   maxTransferDays: number;
+  earnFromSameMonth: boolean;
 }
 
 export interface VacationYearBalance {

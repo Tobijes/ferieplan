@@ -51,7 +51,8 @@ function usablePeriodEnd(vacationYear: number): string {
 function earnedInVacationYear(
   vacationYear: number,
   atDate: string,
-  employmentStartDate: string
+  employmentStartDate: string,
+  earnFromSameMonth: boolean = true
 ): number {
   const obtain = obtainPeriod(vacationYear);
 
@@ -61,11 +62,14 @@ function earnedInVacationYear(
   // Effective start is the later of obtain period start and employment start month
   const effectiveStart = obtain.start > employmentStartMonthStart ? obtain.start : employmentStartMonthStart;
 
-  // Calculate to start of next month after atDate, so days are usable from the start of each month
+  // Calculate earn-end boundary based on earnFromSameMonth setting
   const atDateParsed = parseISO(atDate);
-  const nextMonthStart = format(addMonths(startOfMonth(atDateParsed), 1), 'yyyy-MM-dd');
+  const earnEndDate = earnFromSameMonth
+    ? addMonths(startOfMonth(atDateParsed), 1)
+    : startOfMonth(atDateParsed);
+  const nextMonthStart = format(earnEndDate, 'yyyy-MM-dd');
 
-  // Effective end is the earlier of obtain period end and next month start
+  // Effective end is the earlier of obtain period end and earn-end boundary
   const effectiveEnd = obtain.end < nextMonthStart ? obtain.end : nextMonthStart;
 
   if (effectiveStart > effectiveEnd) return 0;
@@ -114,7 +118,8 @@ export function getVacationYearBalances(
   selectedDates: string[],
   enabledHolidays: Record<string, boolean>,
   atDate: string,
-  maxTransferDays: number = 5
+  maxTransferDays: number = 5,
+  earnFromSameMonth: boolean = true
 ): VacationYearBalance[] {
   // Determine range of vacation years to consider
   const startVacationYear = getVacationYearForDate(startDate);
@@ -127,7 +132,7 @@ export function getVacationYearBalances(
 
   // Build balance objects
   const balances: VacationYearBalance[] = vacationYears.map((year) => {
-    const earned = earnedInVacationYear(year, atDate, startDate);
+    const earned = earnedInVacationYear(year, atDate, startDate, earnFromSameMonth);
     const extra = extraInVacationYear(year, atDate, startDate, extraDaysMonth, extraDaysCount);
     const expEnd = usablePeriodEnd(year);
     const expired = atDate > expEnd;
@@ -256,7 +261,8 @@ export function buildTimelineEvents(
   vacationYearCount: number,
   employmentMonthStart: string,
   startDate: string,
-  extraDaysMonth: number
+  extraDaysMonth: number,
+  earnFromSameMonth: boolean = true
 ): TimelineEvent[] {
   const events: TimelineEvent[] = [];
 
@@ -272,8 +278,9 @@ export function buildTimelineEvents(
     const obtainEndDate = parseISO(obtainEndStr);
     const monthCount = differenceInMonths(obtainEndDate, effectiveEarnStartDate);
     for (let m = 0; m < monthCount; m++) {
+      const earnDate = addMonths(effectiveEarnStartDate, earnFromSameMonth ? m : m + 1);
       events.push({
-        date: format(addMonths(effectiveEarnStartDate, m), 'yyyy-MM-dd'),
+        date: format(earnDate, 'yyyy-MM-dd'),
         priority: 0, yearIndex: i, kind: 'earn',
       });
     }
@@ -411,7 +418,8 @@ export function computeAllStatuses(
   extraDaysMonth: number,
   extraDaysCount: number,
   advanceDays: number,
-  maxTransferDays: number = 5
+  maxTransferDays: number = 5,
+  earnFromSameMonth: boolean = true
 ): Record<string, DayStatus> {
   const selectedSet = new Set(selectedDates);
   const result = classifyStaticDates(dates, startDate, enabledHolidays, selectedSet);
@@ -425,7 +433,7 @@ export function computeAllStatuses(
   const vacationYearCount = lastVacationYear - firstVacationYear + 1;
 
   const employmentMonthStart = format(startOfMonth(parseISO(startDate)), 'yyyy-MM-dd');
-  const events = buildTimelineEvents(firstVacationYear, vacationYearCount, employmentMonthStart, startDate, extraDaysMonth);
+  const events = buildTimelineEvents(firstVacationYear, vacationYearCount, employmentMonthStart, startDate, extraDaysMonth, earnFromSameMonth);
 
   const vacationYears: VacationYearState[] = Array.from({ length: vacationYearCount }, (_, i) => ({
     earned: 0, extra: 0, used: 0, transferred: 0,

@@ -1,6 +1,7 @@
 {
   "advanceDays": 0,
   "maxTransferDays": 5,
+  "earnFromSameMonth": true,
   "extraHoliday": {
     "defaultMonth": 5,
     "defaultCount": 5

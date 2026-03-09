@@ -127,7 +127,7 @@ export function TopConfigBar({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
 
   useEffect(() => {
     if (defaults.holidays.length > 0) {
-      initDefaults(defaults.holidays, defaults.extraHoliday.defaultMonth, defaults.extraHoliday.defaultCount, defaults.advanceDays, defaults.maxTransferDays);
+      initDefaults(defaults.holidays, defaults.extraHoliday.defaultMonth, defaults.extraHoliday.defaultCount, defaults.advanceDays, defaults.maxTransferDays, defaults.earnFromSameMonth);
     }
   }, [defaults, initDefaults, state.holidays.length]);
 
@@ -389,6 +389,19 @@ export function SidebarConfig() {
                 }
               />
               <HelpIcon text="Maks antal ubrugte feriedage der kan overføres til næste ferieår." />
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="earnFromSameMonth">Brug feriedage samme måned</Label>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="earnFromSameMonth"
+                checked={state.earnFromSameMonth}
+                onCheckedChange={(checked) =>
+                  setState((prev) => ({ ...prev, earnFromSameMonth: checked }))
+                }
+              />
+              <HelpIcon text="Hvis slået til, kan feriedage bruges fra den 1. i den måned de optjenes. Ellers først fra næste måned." />
             </div>
           </div>
         </CardContent>

@@ -118,6 +118,7 @@ interface VacationState {
   holidays: Holiday[];            // full holiday list (persisted, seeded from default.json)
   advanceDays: number;            // max borrowable vacation days (forskudsferie), default: 0
   maxTransferDays: number;        // max days transferable between ferieår, default: 5
+  earnFromSameMonth: boolean;     // if true, earned days usable from 1st of earn month; if false, from 1st of next month; default: true
 }
 
 interface VacationYearBalance {
@@ -146,7 +147,7 @@ A single string value: the Firebase Cloud Storage `generation` of the last synce
 
 Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Year N → Aug 31 Year N+1 (obtain period), and days are usable Sep 1 Year N → Dec 31 Year N+1.
 
-1. Per ferieår, each month within the obtain period earns 2.08 days (credited at start of month, usable from day 1; if employment starts mid-month, the full month is still credited)
+1. Per ferieår, each month within the obtain period earns 2.08 days. When `earnFromSameMonth` is `true` (default), days are usable from the 1st of the earn month. When `false`, days are first usable from the 1st of the following month. Employment start is always rounded to start of month.
 2. Extra days (`extraDaysCount`) are added when the configured `extraDaysMonth` falls within the obtain period
 3. Used days (selected dates excluding holidays) are allocated using **waterfall splitting**: each day is consumed from the earliest non-expired ferieår with remaining balance first; if that year has less than 1 day remaining, it takes what's available (zeroing the year) and the remainder spills to the next usable ferieår. Only when all active years are exhausted does the balance go negative (borrowing from the latest usable year).
 4. When a ferieår expires, up to `maxTransferDays` (default 5) surplus days transfer to the next ferieår; the rest are lost

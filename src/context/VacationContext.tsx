@@ -17,6 +17,7 @@ export const defaultState: VacationState = {
   holidays: [],
   advanceDays: 0,
   maxTransferDays: 5,
+  earnFromSameMonth: true,
 };
 
 type SyncConflict = { type: 'upload' } | null;
@@ -26,7 +27,7 @@ interface VacationContextType {
   setState: (value: VacationState | ((prev: VacationState) => VacationState)) => void;
   toggleDate: (dateStr: string) => void;
   toggleHoliday: (dateStr: string) => void;
-  initDefaults: (holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number) => void;
+  initDefaults: (holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number, earnFromSameMonth: boolean) => void;
   addHoliday: (date: string, name: string) => void;
   resetState: () => void;
   holidayNames: Record<string, string>;
@@ -266,14 +267,14 @@ export function VacationProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const initDefaults = (holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number) => {
+  const initDefaults = (holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number, earnFromSameMonth: boolean) => {
     setState((prev) => {
       if (prev.holidays.length === 0) {
         const enabled: Record<string, boolean> = {};
         for (const h of holidays) {
           enabled[h.date] = h.enabled;
         }
-        return { ...prev, holidays, enabledHolidays: enabled, extraDaysMonth: extraMonth, extraDaysCount: extraCount, advanceDays, maxTransferDays };
+        return { ...prev, holidays, enabledHolidays: enabled, extraDaysMonth: extraMonth, extraDaysCount: extraCount, advanceDays, maxTransferDays, earnFromSameMonth };
       }
 
       const existingDates = new Set(prev.holidays.map(h => h.date));
@@ -328,7 +329,8 @@ export function VacationProvider({ children }: { children: ReactNode }) {
     state.extraDaysMonth,
     state.extraDaysCount,
     state.advanceDays,
-    state.maxTransferDays
+    state.maxTransferDays,
+    state.earnFromSameMonth
   );
 
   const value = {

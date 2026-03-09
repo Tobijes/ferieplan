@@ -50,6 +50,19 @@ describe('computeAllStatuses', () => {
     expect(result['2026-01-07']).toBe('selected-warning');
   });
 
+  it('earnFromSameMonth=false: first selected day in January is overdrawn (no days credited yet)', () => {
+    // startDate Jan 1, earnFromSameMonth=false → Jan's 2.08 days only available from Feb 1
+    // So on Jan 5 balance = 0 → selecting it means overdrawn immediately
+    const selected = ['2026-01-05'];
+    const result = computeAllStatuses(
+      selected,
+      selected,
+      {},
+      '2026-01-01', 0, 5, 5, 0, 5, false
+    );
+    expect(result['2026-01-05']).toBe('selected-overdrawn');
+  });
+
 });
 
 describe('getVacationYearForDate', () => {
@@ -173,6 +186,20 @@ describe('getVacationYearBalances', () => {
       '2025-09-01', 0, 5, 5, [], {}, '2026-06-01'
     );
     expect(balances[0].extra).toBe(5);
+  });
+
+  it('earnFromSameMonth=false delays earn by one month', () => {
+    // Start Sep 2025, check at Jan 2026
+    // earnFromSameMonth=true: Sep, Oct, Nov, Dec, Jan = 5 months = 10.4
+    // earnFromSameMonth=false: only Sep-Dec credited by Jan 1 (Jan's days available from Feb 1) = 4 months = 8.32
+    const balancesTrue = getVacationYearBalances(
+      '2025-09-01', 0, 5, 5, [], {}, '2026-01-01', 5, true
+    );
+    const balancesFalse = getVacationYearBalances(
+      '2025-09-01', 0, 5, 5, [], {}, '2026-01-01', 5, false
+    );
+    expect(balancesTrue[0].earned).toBeCloseTo(10.4);
+    expect(balancesFalse[0].earned).toBeCloseTo(8.32); // 4 months × 2.08
   });
 });
 
