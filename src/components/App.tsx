@@ -35,8 +35,31 @@ function AppContent() {
           </div>
           <div className="flex-1 flex flex-col lg:items-center gap-4 pt-4">
             <TopConfigBar onOpenDrawer={!isDesktop ? () => setDrawerOpen(true) : undefined} />
+            {/* Color legend — bg-* classes must match statusClasses in CalendarDay.tsx */}
+            <div className="max-w-6xl w-full px-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <span className="w-3 h-3 rounded-full bg-gray-200" />
+                Weekend
+              </span>
+              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <span className="w-3 h-3 rounded-full bg-blue-200" />
+                Helligdag
+              </span>
+              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <span className="w-3 h-3 rounded-full bg-green-300" />
+                Feriedag
+              </span>
+              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <span className="w-3 h-3 rounded-full bg-yellow-300" />
+                Forskudsferie
+              </span>
+              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <span className="w-3 h-3 rounded-full bg-red-300" />
+                Overtræk
+              </span>
+            </div>
             <p className="text-sm text-muted-foreground text-center max-w-6xl w-full px-4">
-              Tryk på datoerne i kalenderen for at vælge dine feriedage.
+              Vælg dine feriedage ved at trykke på datoerne nedenfor.
             </p>
             <CalendarView />
           </div>
