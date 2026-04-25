@@ -392,7 +392,7 @@ export function SidebarConfig() {
             </div>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <Label htmlFor="earnFromSameMonth">Brug feriedage samme måned</Label>
+            <Label htmlFor="earnFromSameMonth">Feriedage kan afholdes i optjeningsmåneden</Label>
             <div className="flex items-center gap-2">
               <Switch
                 id="earnFromSameMonth"
