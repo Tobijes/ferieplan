@@ -194,7 +194,14 @@ export function VacationProvider({ children }: { children: ReactNode }) {
     if (syncConflict) return;
 
     const json = JSON.stringify(state);
-    if (json === lastSyncedJsonRef.current) return;
+    if (json === lastSyncedJsonRef.current) {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+        syncTimeoutRef.current = null;
+      }
+      if (syncStatus === 'pending') setSyncStatus('synced');
+      return;
+    }
 
     // Local edits detected
     setSyncStatus('pending');
