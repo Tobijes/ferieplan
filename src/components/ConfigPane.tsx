@@ -318,7 +318,7 @@ export function SidebarConfig() {
           <div className="space-y-1">
             <div className="flex gap-2 items-end">
               <div className="grow-[3] basis-0 min-w-0 space-y-1">
-                <Label>Ekstra feriedage</Label>
+                <Label>Feriefridage</Label>
                 <DeferredNumberInput
                   min={0}
                   max={99}
@@ -349,7 +349,7 @@ export function SidebarConfig() {
                 </Select>
               </div>
               <div className="h-9 flex items-center">
-                <HelpIcon text="Ekstra feriedage (f.eks. 6. ferieuge) tildeles d. 1. i den valgte måned og er gyldige i præcis ét år." />
+                <HelpIcon text="Feriefridage (f.eks. 6. ferieuge) tildeles d. 1. i den valgte måned og er gyldige i præcis ét år." />
               </div>
             </div>
           </div>

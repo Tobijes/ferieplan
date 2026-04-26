@@ -51,6 +51,7 @@ function BalanceDetailsPopover({ rows, advanceDays }: { rows: BreakdownRow[]; ad
       </PopoverTrigger>
       <PopoverContent side="top" className="text-xs w-auto p-2">
         <div className="flex flex-col gap-1">
+          <div className="font-bold whitespace-nowrap">Feriedage fordelt på</div>
           {rows.map((row, i) => (
             <div key={i} className="flex items-center justify-between gap-4 whitespace-nowrap">
               <span className="text-muted-foreground">{row.label}:</span>
@@ -93,9 +94,8 @@ function MonthHeader({ month }: { month: Date }) {
   for (const balance of activeVacationYears) {
     breakdownRows.push({ label: `Ferieåret ${formatVacationYearLabel(balance.year)}`, balance: balance.balance });
   }
-  for (const ep of activeExtraPeriods) {
-    breakdownRows.push({ label: 'Ekstra feriedage', balance: ep.balance });
-  }
+  const extraBalance = activeExtraPeriods.reduce((sum, ep) => sum + ep.balance, 0);
+  breakdownRows.push({ label: 'Feriefridage', balance: extraBalance });
 
   const totalBalance = breakdownRows.reduce((sum, r) => sum + r.balance, 0);
 

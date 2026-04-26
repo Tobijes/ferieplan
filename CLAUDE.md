@@ -207,7 +207,7 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 - Context functions (`toggleDate`, `toggleHoliday`, `initDefaults`, `addHoliday`, `resetState`) have stable references (React Compiler handles this automatically)
 - Current year accordion is expanded by default; other years are collapsed
 - Users can add custom holidays via a "+" icon button in the top-right corner of the Helligdage card header (opens Popover with name field and native date picker)
-- Number inputs (Optjente feriedage, Ekstra feriedage, Forskudsferie) use `DeferredNumberInput` — local state while typing, commits to global state on blur/Enter. This avoids recomputing `dayStatuses` on every keystroke. All are clamped to 0–99.
+- Number inputs (Optjente feriedage, Feriefridage, Forskudsferie) use `DeferredNumberInput` — local state while typing, commits to global state on blur/Enter. This avoids recomputing `dayStatuses` on every keystroke. All are clamped to 0–99.
 - Drawer animations (`drawer-slide-in`, `drawer-overlay-in`) are defined as CSS keyframes in `index.css` and registered as Tailwind theme animations.
 
 ## Locale
