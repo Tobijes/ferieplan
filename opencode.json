@@ -1,5 +1,6 @@
 {
     "$schema": "https://opencode.ai/config.json",
+    "plugin": ["@mohak34/opencode-notifier@latest"],
     "provider": {
         "openrouter": {
             "models": {
@@ -43,7 +44,7 @@
             "model": "openrouter/moonshotai/kimi-k2.6"
         },
         "build": {
-            "model": "openrouter/deepseek/deepseek-v4-flash"
+            "model": "openrouter/minimax/minimax-m2.7"
         }
     }
 }

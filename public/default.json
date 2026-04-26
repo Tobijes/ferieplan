@@ -7,6 +7,21 @@
     "defaultCount": 5
   },
   "holidays": [
+    { "date": "2025-01-01", "name": "Nytårsdag", "enabled": true },
+    { "date": "2025-04-17", "name": "Skærtorsdag", "enabled": true },
+    { "date": "2025-04-18", "name": "Langfredag", "enabled": true },
+    { "date": "2025-04-20", "name": "Påskedag", "enabled": true },
+    { "date": "2025-04-21", "name": "2. påskedag", "enabled": true },
+    { "date": "2025-05-01", "name": "1. Maj", "enabled": false },
+    { "date": "2025-05-29", "name": "Kristi himmelfartsdag", "enabled": true },
+    { "date": "2025-06-05", "name": "Grundlovsdag", "enabled": true },
+    { "date": "2025-06-08", "name": "Pinsedag", "enabled": true },
+    { "date": "2025-06-09", "name": "2. pinsedag", "enabled": true },
+    { "date": "2025-12-24", "name": "Juleaftensdag", "enabled": false },
+    { "date": "2025-12-25", "name": "1. juledag", "enabled": true },
+    { "date": "2025-12-26", "name": "2. juledag", "enabled": true },
+    { "date": "2025-12-31", "name": "Nytårsaftensdag", "enabled": false },
+
     { "date": "2026-01-01", "name": "Nytårsdag", "enabled": true },
     { "date": "2026-04-02", "name": "Skærtorsdag", "enabled": true },
     { "date": "2026-04-03", "name": "Langfredag", "enabled": true },

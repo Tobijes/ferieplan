@@ -113,10 +113,9 @@ describe('getVacationYearBalances', () => {
 
   it('splits used days across years when earliest year has partial balance', () => {
     // Start Sep 2025, check at Nov 2026
-    // vy2025: 12 months × 2.08 = 24.96 earned (extras now in separate pool)
-    // Note: enumerateExtraPeriods also emits a May 2025 grant (clamped to Sep 2025 start),
-    // which expires May 2026. So Sep-Dec 2025 dates are absorbed by extras first (5 days),
-    // then vy2025 takes the rest.
+    // vy2025: 12 months × 2.08 = 24.96 earned (extras in separate pool)
+    // May 2025 grant is skipped (natural grant date before start), so Sep-Dec 2025
+    // dates all consume from vy2025. May 2026 grant absorbs the Oct 2026 day.
     // Select 24 weekdays in Sep-Dec 2025, then 1 day in Oct 2026.
     const selected: string[] = [];
     let count = 0;
@@ -137,14 +136,11 @@ describe('getVacationYearBalances', () => {
     );
     const vy2025 = vacationYears.find(b => b.year === 2025)!;
     const vy2026 = vacationYears.find(b => b.year === 2026)!;
-    // May 2025 grant (clamped to Sep 2025) absorbs first 5 days in Sep-Dec 2025
-    const ep2025 = extraPeriods.find(ep => ep.expiryDate === '2026-05-01')!;
+    // May 2025 grant is skipped (before start), so all 24 Sep-Dec 2025 days come from vy2025
+    expect(vy2025.used).toBeCloseTo(24);
     // May 2026 grant absorbs the Oct 2026 day
     const ep2026 = extraPeriods.find(ep => ep.startDate === '2026-05-01')!;
-
-    expect(ep2025.used).toBeCloseTo(5); // Sep-Dec 2025 extras consumed
-    expect(vy2025.used).toBeCloseTo(19); // remaining 19 of the 24 Sep-Dec days
-    expect(ep2026.used).toBeCloseTo(1);  // Oct 2026 day consumed from May 2026 grant
+    expect(ep2026.used).toBeCloseTo(1);
     expect(vy2026.used).toBeCloseTo(0);
   });
 
@@ -300,18 +296,10 @@ describe('enumerateExtraPeriods', () => {
   });
 
   it('skips periods entirely before employment start', () => {
-    // startDate 2026-09-01, extraDaysMonth=5 → May 2026 period (expiry May 2027) straddles
-    // But May 2025 period (expiry May 2026) is before startDate — should be skipped
+    // startDate 2026-09-01, extraDaysMonth=5 → May 2025 grant (natural date < start) is skipped,
+    // May 2026 grant (natural date Sep 2026) is included
     const periods = enumerateExtraPeriods('2026-09-01', '2027-12-31', 5, 5);
     expect(periods.every(ep => ep.expiryDate > '2026-09-01')).toBe(true);
-  });
-
-  it('clamps startDate to employment start', () => {
-    // startDate 2026-06-01, extraDaysMonth=5 → May 2026 natural grant < startDate
-    const periods = enumerateExtraPeriods('2026-06-01', '2026-12-31', 5, 5);
-    const ep = periods.find(ep => ep.expiryDate === '2027-05-01');
-    expect(ep).toBeDefined();
-    expect(ep!.startDate).toBe('2026-06-01'); // clamped to employment start
   });
 
   it('shifts startDate by one month when earnFromSameMonth=false', () => {

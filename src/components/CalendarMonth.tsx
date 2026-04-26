@@ -5,6 +5,7 @@ import {
   getDay,
   getISOWeek,
   format,
+  parseISO,
 } from 'date-fns';
 import { da } from 'date-fns/locale';
 import { Info } from 'lucide-react';
@@ -70,8 +71,20 @@ function MonthHeader({ month }: { month: Date }) {
   const year = month.getFullYear();
   const monthName = format(month, 'MMMM', { locale: da });
 
+  const employmentMonthStart = startOfMonth(parseISO(state.startDate));
+  const monthEnd = endOfMonth(month);
+  const isBeforeStart = monthEnd < employmentMonthStart;
+
+  if (isBeforeStart) {
+    return (
+      <div className="relative flex flex-col items-center justify-center mb-2">
+        <h3 className="text-sm font-semibold capitalize">{monthName}</h3>
+      </div>
+    );
+  }
+
   // Calculate balances at end of month (earnedInVacationYear now credits days from start of month)
-  const endOfMonthDate = toISODate(endOfMonth(month));
+  const endOfMonthDate = toISODate(monthEnd);
   const { vacationYears, extraPeriods } = getVacationYearBalances(
     state.startDate, state.initialVacationDays, state.extraDaysMonth,
     state.extraDaysCount, state.selectedDates, state.enabledHolidays,

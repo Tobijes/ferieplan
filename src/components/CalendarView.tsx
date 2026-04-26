@@ -1,5 +1,4 @@
 import { Fragment } from 'react';
-import { generateMonths } from '@/lib/dateUtils';
 import { useVacation } from '@/context/VacationContext';
 import { CalendarMonth } from './CalendarMonth';
 import { getVacationYearBalances } from '@/lib/vacationCalculations';
@@ -67,8 +66,7 @@ function YearHeader({ year }: { year: number }) {
 }
 
 export function CalendarView() {
-  const { calendarRef, dayStatuses, visibleYears } = useVacation();
-  const months = generateMonths(visibleYears);
+  const { calendarRef, dayStatuses, months } = useVacation();
 
   return (
     <div ref={calendarRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-4 pb-4 max-w-6xl">

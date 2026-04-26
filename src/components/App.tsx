@@ -3,15 +3,19 @@ import { AuthProvider } from '@/context/AuthContext';
 import { VacationProvider, useVacation } from '@/context/VacationContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
-import { TopConfigBar, SidebarConfig } from './ConfigPane';
+import { SidebarConfig } from './ConfigPane';
 import { CalendarView } from './CalendarView';
 import { SyncConflictDialog } from './SyncConflictDialog';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useDefaults } from '@/hooks/useHolidays';
+import { Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 function AppContent() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
-  const { syncConflict, resolveSyncConflict } = useVacation();
+  const { syncConflict, resolveSyncConflict, initDefaults, state } = useVacation();
+  const defaults = useDefaults();
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -26,6 +30,13 @@ function AppContent() {
     if (isDesktop) setDrawerOpen(false);
   }, [isDesktop]);
 
+  // Seed holidays and config on first load
+  useEffect(() => {
+    if (defaults.holidays.length > 0) {
+      initDefaults(defaults.holidays, defaults.extraHoliday.defaultMonth, defaults.extraHoliday.defaultCount, defaults.advanceDays, defaults.maxTransferDays, defaults.earnFromSameMonth);
+    }
+  }, [defaults, initDefaults, state.holidays.length]);
+
   return (
     <>
       <div className="min-h-screen bg-background text-foreground">
@@ -34,7 +45,18 @@ function AppContent() {
             <SidebarConfig />
           </div>
           <div className="flex-1 flex flex-col lg:items-center gap-4 pt-4">
-            <TopConfigBar onOpenDrawer={!isDesktop ? () => setDrawerOpen(true) : undefined} />
+            {!isDesktop && (
+              <div className="px-4 max-w-6xl w-full">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full"
+                  onClick={() => setDrawerOpen(true)}
+                >
+                  <Settings className="size-5" />
+                </Button>
+              </div>
+            )}
             {/* Color legend — bg-* classes must match statusClasses in CalendarDay.tsx */}
             <div className="max-w-6xl w-full px-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
               <span className="flex items-center gap-1.5 text-sm text-muted-foreground">

@@ -2,9 +2,8 @@ import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { useVacation } from '@/context/VacationContext';
 import { useAuth } from '@/context/AuthContext';
 import { environmentName } from '@/lib/firebase';
-import { useDefaults } from '@/hooks/useHolidays';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CircleCheck, CircleDot, CircleMinus, Loader2, LogIn, LogOut, PlusIcon, Settings, Trash2 } from 'lucide-react';
+import { CircleCheck, CircleDot, CircleMinus, Loader2, LogIn, LogOut, PlusIcon, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -120,68 +119,6 @@ const MONTH_NAMES = [
   'Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni',
   'Juli', 'August', 'September', 'Oktober', 'November', 'December',
 ];
-
-export function TopConfigBar({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
-  const { state, setState, initDefaults } = useVacation();
-  const defaults = useDefaults();
-
-  useEffect(() => {
-    if (defaults.holidays.length > 0) {
-      initDefaults(defaults.holidays, defaults.extraHoliday.defaultMonth, defaults.extraHoliday.defaultCount, defaults.advanceDays, defaults.maxTransferDays, defaults.earnFromSameMonth);
-    }
-  }, [defaults, initDefaults, state.holidays.length]);
-
-  return (
-    <div className="px-4 max-w-6xl w-full">
-      {onOpenDrawer && (
-        <Button
-          variant="outline"
-          size="icon"
-          className="rounded-full shrink-0 mb-4"
-          onClick={onOpenDrawer}
-        >
-          <Settings className="size-5" />
-        </Button>
-      )}
-      <div className="flex items-end gap-2 max-w-lg mx-auto">
-        <div className="flex-1 min-w-0 space-y-1">
-          <Label htmlFor="initialDays">Optjente feriedage</Label>
-          <div className="flex gap-2 items-center">
-            <DeferredNumberInput
-              id="initialDays"
-              min={0}
-              max={99}
-              className="flex-1 min-w-0"
-              value={state.initialVacationDays}
-              onCommit={(v) =>
-                setState((prev) => ({
-                  ...prev,
-                  initialVacationDays: v,
-                }))
-              }
-            />
-            <HelpIcon text="Antal feriedage du allerede har optjent ved startdatoen." />
-          </div>
-        </div>
-        <div className="flex-1 min-w-0 space-y-1">
-          <Label htmlFor="startDate">Fra dato</Label>
-          <div className="flex gap-2 items-center">
-            <Input
-              id="startDate"
-              type="date"
-              value={state.startDate}
-              className="flex-1 min-w-0"
-              onChange={(e) =>
-                setState((prev) => ({ ...prev, startDate: e.target.value }))
-              }
-            />
-            <HelpIcon text="Første dag hvor ferieplanen starter. Dage før denne dato kan ikke vælges." />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function SidebarConfig() {
   const { state, setState, toggleHoliday, addHoliday, resetState, setHighlightedDate, visibleYears, syncStatus } = useVacation();
@@ -307,6 +244,48 @@ export function SidebarConfig() {
             </div>
           )}
           <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Grundlag</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            <Label htmlFor="initialDays">Optjente feriedage</Label>
+            <div className="flex gap-2 items-center">
+              <DeferredNumberInput
+                id="initialDays"
+                min={0}
+                max={99}
+                className="flex-1 min-w-0"
+                value={state.initialVacationDays}
+                onCommit={(v) =>
+                  setState((prev) => ({
+                    ...prev,
+                    initialVacationDays: v,
+                  }))
+                }
+              />
+              <HelpIcon text="Antal feriedage du allerede har optjent ved startdatoen." />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="startDate">Fra dato</Label>
+            <div className="flex gap-2 items-center">
+              <Input
+                id="startDate"
+                type="date"
+                value={state.startDate}
+                className="flex-1 min-w-0"
+                onChange={(e) =>
+                  setState((prev) => ({ ...prev, startDate: e.target.value }))
+                }
+              />
+              <HelpIcon text="Første dag hvor ferieplanen starter. Dage før denne dato kan ikke vælges." />
+            </div>
+          </div>
         </CardContent>
       </Card>
 

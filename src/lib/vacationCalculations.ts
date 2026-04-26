@@ -105,6 +105,8 @@ export function enumerateExtraPeriods(
     const naturalGrantDate = `${y}-${mm}-01`;
     const expiryDate = `${y + 1}-${mm}-01`; // exclusive upper bound
 
+    if (naturalGrantDate < startDate) continue;
+
     // Skip periods entirely before employment
     if (expiryDate <= startDate) continue;
 

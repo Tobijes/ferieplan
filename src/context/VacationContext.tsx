@@ -7,8 +7,14 @@ import { useAuth } from '@/context/AuthContext';
 import { saveStateToCloud, loadStateFromCloud, getCloudGeneration } from '@/lib/cloudStorage';
 import type { Holiday, DayStatus, VacationState, SyncStatus } from '@/types';
 
+function getPreviousSeptember1st(): string {
+  const now = new Date();
+  const year = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+  return toISODate(new Date(year, 8, 1));
+}
+
 export const defaultState: VacationState = {
-  startDate: toISODate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+  startDate: getPreviousSeptember1st(),
   initialVacationDays: 0,
   extraDaysMonth: 5,
   extraDaysCount: 5,
@@ -33,6 +39,7 @@ interface VacationContextType {
   holidayNames: Record<string, string>;
   dayStatuses: Record<string, DayStatus>;
   visibleYears: number[];
+  months: Date[];
   setHighlightedDate: (date: string | null) => void;
   calendarRef: React.RefObject<HTMLDivElement | null>;
   syncStatus: SyncStatus;
@@ -306,7 +313,7 @@ export function VacationProvider({ children }: { children: ReactNode }) {
   };
 
   const resetState = () => {
-    setState({ ...defaultState, startDate: toISODate(new Date()) });
+    setState({ ...defaultState });
     if (user) {
       generationRef.current = null;
       setLocalGeneration(null);
@@ -319,7 +326,10 @@ export function VacationProvider({ children }: { children: ReactNode }) {
   holidayYears.add(currentYear);
   const visibleYears = [...holidayYears].sort((a, b) => a - b);
 
-  const months = generateMonths(visibleYears);
+  const calendarStartDate = getPreviousSeptember1st();
+  const allVisibleMonths = generateMonths(visibleYears);
+  const months = allVisibleMonths.filter(m => toISODate(m) >= calendarStartDate);
+
   const allDates: string[] = [];
   for (const m of months) {
     const days = eachDayOfInterval({ start: startOfMonth(m), end: endOfMonth(m) });
@@ -342,7 +352,7 @@ export function VacationProvider({ children }: { children: ReactNode }) {
 
   const value = {
     state, setState, toggleDate, toggleHoliday, initDefaults, addHoliday, resetState,
-    holidayNames, dayStatuses, visibleYears, setHighlightedDate, calendarRef,
+    holidayNames, dayStatuses, visibleYears, months, setHighlightedDate, calendarRef,
     syncStatus, syncConflict, resolveSyncConflict,
   };
 
