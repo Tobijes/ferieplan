@@ -77,16 +77,12 @@ function MonthHeader({ month }: { month: Date }) {
     endOfMonthDate, state.maxTransferDays, state.earnFromSameMonth
   );
 
-  // Determine active vacation year(s) for this month
-  // Jan-Aug (0-7): Only vacation year (year - 1) is active
-  // Sep-Dec (8-11): Both vacation year (year - 1) and vacation year (year) are active
-  const isSepToDec = monthNum >= 8;
-
-  const leftVacationYear = year - 1;
-  const rightVacationYear = isSepToDec ? year : null;
-
-  const leftBalance = vacationYears.find(b => b.year === leftVacationYear && !b.expired);
-  const rightBalance = rightVacationYear ? vacationYears.find(b => b.year === rightVacationYear && !b.expired) : null;
+  // Jan-Aug (0-7): Only the previous vacation year is active
+  // Sep-Dec (8-11): Both the previous and the current vacation year are active
+  const activeVacationYearNumbers = monthNum >= 8 ? [year - 1, year] : [year - 1];
+  const activeVacationYears = activeVacationYearNumbers
+    .map(y => vacationYears.find(b => b.year === y && !b.expired))
+    .filter(b => b !== undefined);
 
   // Find active extra periods covering this month (not yet expired)
   const activeExtraPeriods = extraPeriods.filter(
@@ -94,11 +90,8 @@ function MonthHeader({ month }: { month: Date }) {
   );
 
   const breakdownRows: BreakdownRow[] = [];
-  if (leftBalance) {
-    breakdownRows.push({ label: `Ferieåret ${formatVacationYearLabel(leftBalance.year)}`, balance: leftBalance.balance });
-  }
-  if (rightBalance) {
-    breakdownRows.push({ label: `Ferieåret ${formatVacationYearLabel(rightBalance.year)}`, balance: rightBalance.balance });
+  for (const balance of activeVacationYears) {
+    breakdownRows.push({ label: `Ferieåret ${formatVacationYearLabel(balance.year)}`, balance: balance.balance });
   }
   for (const ep of activeExtraPeriods) {
     breakdownRows.push({ label: 'Ekstra feriedage', balance: ep.balance });
