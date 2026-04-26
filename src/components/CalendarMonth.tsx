@@ -11,7 +11,7 @@ import { DA_DAY_NAMES, toISODate } from '@/lib/dateUtils';
 import { getVacationYearBalances } from '@/lib/vacationCalculations';
 import { useVacation } from '@/context/VacationContext';
 import { CalendarDay } from './CalendarDay';
-import type { DayStatus } from '@/types';
+import type { DayStatus, ExtraDayPeriod } from '@/types';
 
 interface CalendarMonthProps {
   month: Date;
@@ -24,11 +24,27 @@ function formatVacationYearLabel(year: number): string {
   return `${y1.toString().padStart(2, '0')}/${y2.toString().padStart(2, '0')}`;
 }
 
+function balanceColor(balance: number, advanceDays: number): string {
+  if (balance > 0) return 'text-green-600';
+  if (balance === 0) return 'text-muted-foreground';
+  if (balance >= -advanceDays) return 'text-yellow-500';
+  return 'text-red-600';
+}
+
 function VacationYearBadge({ year, balance, advanceDays }: { year: number; balance: number; advanceDays: number }) {
   return (
     <span className="text-xs whitespace-nowrap">
       <span className="text-muted-foreground">{formatVacationYearLabel(year)}:</span>{' '}
-      <span className={`${balance > 0 ? 'text-green-600' : balance === 0 ? 'text-muted-foreground' : balance >= -advanceDays ? 'text-yellow-500' : 'text-red-600'} font-medium`}>{balance.toFixed(2)}</span>
+      <span className={`${balanceColor(balance, advanceDays)} font-medium`}>{balance.toFixed(2)}</span>
+    </span>
+  );
+}
+
+function ExtraDayBadge({ period, advanceDays }: { period: ExtraDayPeriod; advanceDays: number }) {
+  return (
+    <span className="text-xs whitespace-nowrap">
+      <span className="text-muted-foreground">Ekstra:</span>{' '}
+      <span className={`${balanceColor(period.balance, advanceDays)} font-medium`}>{period.balance.toFixed(2)}</span>
     </span>
   );
 }
@@ -41,7 +57,7 @@ function MonthHeader({ month }: { month: Date }) {
 
   // Calculate balances at end of month (earnedInVacationYear now credits days from start of month)
   const endOfMonthDate = toISODate(endOfMonth(month));
-  const balances = getVacationYearBalances(
+  const { vacationYears, extraPeriods } = getVacationYearBalances(
     state.startDate, state.initialVacationDays, state.extraDaysMonth,
     state.extraDaysCount, state.selectedDates, state.enabledHolidays,
     endOfMonthDate, state.maxTransferDays, state.earnFromSameMonth
@@ -52,11 +68,16 @@ function MonthHeader({ month }: { month: Date }) {
   // Sep-Dec (8-11): Both vacation year (year - 1) and vacation year (year) are active
   const isSepToDec = monthNum >= 8;
 
-  const leftVacationYear = isSepToDec ? year - 1 : year - 1;
+  const leftVacationYear = year - 1;
   const rightVacationYear = isSepToDec ? year : null;
 
-  const leftBalance = balances.find(b => b.year === leftVacationYear && !b.expired);
-  const rightBalance = rightVacationYear ? balances.find(b => b.year === rightVacationYear && !b.expired) : null;
+  const leftBalance = vacationYears.find(b => b.year === leftVacationYear && !b.expired);
+  const rightBalance = rightVacationYear ? vacationYears.find(b => b.year === rightVacationYear && !b.expired) : null;
+
+  // Find active extra periods covering this month (not yet expired)
+  const activeExtraPeriods = extraPeriods.filter(
+    ep => endOfMonthDate >= ep.startDate && endOfMonthDate < ep.expiryDate && !ep.expired
+  );
 
   return (
     <div className="flex items-center justify-between mb-1 gap-1">
@@ -70,12 +91,15 @@ function MonthHeader({ month }: { month: Date }) {
       <h3 className="text-sm font-semibold text-center flex-shrink-0 capitalize">
         {monthName}
       </h3>
-      <div className="flex-1 min-w-0 text-right">
+      <div className="flex flex-col items-end flex-1 min-w-0">
         {rightBalance ? (
           <VacationYearBadge year={rightBalance.year} balance={rightBalance.balance} advanceDays={state.advanceDays} />
         ) : (
           <span className="text-xs text-transparent">--/--: 0.00</span>
         )}
+        {activeExtraPeriods.map((ep, i) => (
+          <ExtraDayBadge key={i} period={ep} advanceDays={state.advanceDays} />
+        ))}
       </div>
     </div>
   );

@@ -349,7 +349,7 @@ export function SidebarConfig() {
                 </Select>
               </div>
               <div className="h-9 flex items-center">
-                <HelpIcon text="Ekstra feriedage (f.eks. 6. ferieuge) og hvilken måned de tildeles." />
+                <HelpIcon text="Ekstra feriedage (f.eks. 6. ferieuge) tildeles d. 1. i den valgte måned og er gyldige i præcis ét år." />
               </div>
             </div>
           </div>

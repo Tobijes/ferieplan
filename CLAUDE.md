@@ -13,7 +13,7 @@ Danish vacation day planner — client-side React app with optional Firebase clo
 - The "vacation obtain period" runs from 1 September Year 0 to 31 August Year 1.
 - Vacation obtained in that period can be used from 1 September Year 0 through 31 December Year 1 (the "vacation usable period").
 - Each month the employee earns 2.08 vacation days.
-- At a configurable month, the employee receives a configurable number of extra days ("6. ferieuge", default 5).
+- At a configurable month, the employee receives a configurable number of extra days ("6. ferieuge", default 5). These run on their own independent cycle: granted on the 1st of the configured month each year, usable through the day before the next year's grant date (exclusive), and never transferable to the next ferieår.
 - Public holidays are automatically free and do not consume vacation days.
 - "Forskudsferie" (advance vacation) allows borrowing a configurable number of days before they are earned. Default 0, seeded from `default.json`.
 - When a ferieår expires, up to `maxTransferDays` (default 5, configurable) surplus days can transfer to the next ferieår; excess days are lost.
@@ -94,7 +94,7 @@ src/
 │   ├── vacationCalculations.ts  # Balance logic, day status determination
 │   └── vacationCalculations.test.ts  # Vitest tests for vacation calculations
 ├── types/
-│   └── index.ts           # Holiday, DefaultData, VacationState, DayStatus, VacationYearBalance, SyncStatus
+│   └── index.ts           # Holiday, DefaultData, VacationState, DayStatus, VacationYearBalance, ExtraDayPeriod, VacationYearBalancesResult, SyncStatus
 ├── main.tsx
 └── index.css              # Tailwind imports + CSS variables (light theme only)
 public/
@@ -124,12 +124,26 @@ interface VacationState {
 interface VacationYearBalance {
   year: number;        // vacation year start year (e.g. 2025 = Sep 2025 → Aug 2026, usable until Dec 2026)
   earned: number;      // days earned so far in this vacation year
-  extra: number;       // extra days granted in this vacation year
   used: number;        // days consumed from this vacation year
   transferred: number; // days transferred from previous expired vacation year (capped by maxTransferDays)
-  balance: number;     // earned + extra + transferred - used
-  lost: number;        // days lost at expiry (excess beyond transferable limit)
+  balance: number;     // earned + transferred - used
+  lost: number;        // earned-day surplus lost at expiry (excess beyond maxTransferDays; extras never counted here)
   expired: boolean;    // true if atDate > Dec 31 of year+1
+}
+
+interface ExtraDayPeriod {
+  startDate: string;   // first usable ISO date (1st of extraDaysMonth, or next month if !earnFromSameMonth)
+  expiryDate: string;  // first NON-usable ISO date (exclusive) — 1st of extraDaysMonth next year
+  granted: number;     // = extraDaysCount for this period
+  used: number;        // days consumed against this period
+  balance: number;     // granted - used
+  expired: boolean;    // atDate >= expiryDate
+}
+
+// getVacationYearBalances returns VacationYearBalancesResult:
+interface VacationYearBalancesResult {
+  vacationYears: VacationYearBalance[];
+  extraPeriods: ExtraDayPeriod[];
 }
 
 interface Holiday {
@@ -148,13 +162,13 @@ A single string value: the Firebase Cloud Storage `generation` of the last synce
 Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Year N → Aug 31 Year N+1 (obtain period), and days are usable Sep 1 Year N → Dec 31 Year N+1.
 
 1. Per ferieår, each month within the obtain period earns 2.08 days. When `earnFromSameMonth` is `true` (default), days are usable from the 1st of the earn month. When `false`, days are first usable from the 1st of the following month. Employment start is always rounded to start of month.
-2. Extra days (`extraDaysCount`) are added when the configured `extraDaysMonth` falls within the obtain period
-3. Used days (selected dates excluding holidays) are allocated using **waterfall splitting**: each day is consumed from the earliest non-expired ferieår with remaining balance first; if that year has less than 1 day remaining, it takes what's available (zeroing the year) and the remainder spills to the next usable ferieår. Only when all active years are exhausted does the balance go negative (borrowing from the latest usable year).
-4. When a ferieår expires, up to `maxTransferDays` (default 5) surplus days transfer to the next ferieår; the rest are lost
+2. **Extra days run on an independent cycle** (not pooled into the ferieår): each calendar year a grant of `extraDaysCount` days is created on the 1st of `extraDaysMonth`. The grant is usable through the day before the next year's grant date (i.e. `expiryDate = ${year+1}-MM-01`, exclusive). When `earnFromSameMonth=false`, the first usable day shifts one month forward but expiry stays anchored to the natural grant anniversary. All grants are recomputed from current config (no per-grant history stored).
+3. Used days (selected dates excluding holidays) are allocated with **extras first, then ferieår waterfall**: each day first consumes from any active `ExtraDayPeriod` (in chronological order), then from the earliest non-expired ferieår with remaining balance, with splitting when a year has partial balance. Only when all active years are exhausted does the balance go negative (borrowing from the latest usable ferieår). Extras are never borrowed against.
+4. When a ferieår expires, up to `maxTransferDays` (default 5) surplus **earned** days transfer to the next ferieår; the rest are lost. Extra days are fully independent and do not participate in this transfer.
 5. `initialVacationDays` are added to the earliest ferieår's balance
-6. A selected day is **green** if total active balance ≥ 0; **yellow** if < 0 but ≥ −advanceDays (forskudsferie); **red** if < −advanceDays (overdrawn)
+6. A selected day is **green** if total active balance ≥ 0; **yellow** if < 0 but ≥ −advanceDays (forskudsferie); **red** if < −advanceDays (overdrawn). Total active balance includes both non-expired ferieår balances and non-expired extra-day period balances.
 
-`computeAllStatuses` uses an event timeline + single-pass algorithm: it pre-builds sorted earn/extra/expiry events, then merge-walks them with sorted selected dates maintaining per-vacation-year running state incrementally (O(D + S·V) instead of the previous O(S²·V) approach of calling `getVacationYearBalances` per selected date). `getVacationYearBalances` is still used by `CalendarMonth` and `CalendarView` for month-header and year-separator balance display.
+`computeAllStatuses` uses an event timeline + single-pass algorithm: it pre-builds sorted `earn` / `extra-grant` / `extra-expiry` / `expiry` events, then merge-walks them with sorted selected dates maintaining per-vacation-year and per-extra-pool running state incrementally. `getVacationYearBalances` (returning `VacationYearBalancesResult`) is still used by `CalendarMonth` and `CalendarView` for month-header and year-separator balance display.
 
 ## Day Status Colors
 
@@ -176,8 +190,8 @@ Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Ye
 - On mobile: a circular settings icon button (lucide-react `Settings`) appears above the top config bar inputs. Clicking it opens a slide-in drawer from the left containing the sidebar config cards, overlaid on a semi-dark backdrop (`bg-black/50`). Body scroll is locked when the drawer is open (`overflow: hidden` on body + `overscroll-contain` on drawer panel). Drawer auto-closes when resizing to desktop. Clicking the overlay closes the drawer.
 - Each config field in the settings card has a `HelpIcon` (CircleHelp from lucide-react) placed to the right of the input element. Click opens a Popover with a Danish description; click outside dismisses (touch-friendly, no hover required).
 - Dates before `startDate` are disabled and not selectable (status `before-start`)
-- Month headers show ferieår balances with format "YY/(YY+1): X.XX" (e.g., "25/26: 3.40"). Year label is gray; balance color is green (positive), gray (zero), or red (negative). For months Jan-Aug only the active ferieår is shown on the left. For Sep-Dec both ferieår are shown (ending year on left, new year on right).
-- Year separators appear after December months spanning the full grid width with three states: (1) "Ingen feriedage overføres til næste ferieår" if balance is 0, (2) "X.XX feriedage overføres til næste ferieår" if within transfer limit, (3) "X.XX feriedage overføres til næste ferieår, Y.YY feriedage overføres ikke" if exceeding limit (Y.YY in bold red). All text is gray except the lost amount.
+- Month headers show ferieår balances with format "YY/(YY+1): X.XX" (e.g., "25/26: 3.40"). Year label is gray; balance color is green (positive), gray (zero), or red (negative). For months Jan-Aug only the active ferieår is shown on the left. For Sep-Dec both ferieår are shown (ending year on left, new year on right). If an active extra-day period covers the month, an "Ekstra: X.XX" badge is also shown (stacked below the right ferieår badge), using the same color logic.
+- Year separators appear after December months spanning the full grid width with three states: (1) "Ingen feriedage overføres til næste ferieår" if balance is 0, (2) "X.XX feriedage overføres til næste ferieår" if within transfer limit, (3) "X.XX feriedage overføres til næste ferieår, Y.YY feriedage overføres ikke" if exceeding limit (Y.YY in bold red). All text is gray except the lost amount. Only earned ferieår days appear here; extra days expire silently mid-year with no separator (balance simply drops in the next month header).
 - Holidays in config pane show date tooltip on hover and highlight the corresponding calendar day with a blue ring
 - Holidays are grouped by year in an accordion, filtered to only show years visible in the calendar
 - Calendar view has `max-w-6xl` to prevent stretching on wide monitors
