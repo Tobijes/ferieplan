@@ -7,11 +7,13 @@ import {
   format,
 } from 'date-fns';
 import { da } from 'date-fns/locale';
+import { Info } from 'lucide-react';
 import { DA_DAY_NAMES, toISODate } from '@/lib/dateUtils';
 import { getVacationYearBalances } from '@/lib/vacationCalculations';
 import { useVacation } from '@/context/VacationContext';
 import { CalendarDay } from './CalendarDay';
-import type { DayStatus, ExtraDayPeriod } from '@/types';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import type { DayStatus } from '@/types';
 
 interface CalendarMonthProps {
   month: Date;
@@ -31,21 +33,33 @@ function balanceColor(balance: number, advanceDays: number): string {
   return 'text-red-600';
 }
 
-function VacationYearBadge({ year, balance, advanceDays }: { year: number; balance: number; advanceDays: number }) {
-  return (
-    <span className="text-xs whitespace-nowrap">
-      <span className="text-muted-foreground">{formatVacationYearLabel(year)}:</span>{' '}
-      <span className={`${balanceColor(balance, advanceDays)} font-medium`}>{balance.toFixed(2)}</span>
-    </span>
-  );
+interface BreakdownRow {
+  label: string;
+  balance: number;
 }
 
-function ExtraDayBadge({ period, advanceDays }: { period: ExtraDayPeriod; advanceDays: number }) {
+function BalanceDetailsPopover({ rows, advanceDays }: { rows: BreakdownRow[]; advanceDays: number }) {
   return (
-    <span className="text-xs whitespace-nowrap">
-      <span className="text-muted-foreground">Ekstra:</span>{' '}
-      <span className={`${balanceColor(period.balance, advanceDays)} font-medium`}>{period.balance.toFixed(2)}</span>
-    </span>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center shrink-0 text-muted-foreground/40 hover:text-muted-foreground"
+        >
+          <Info className="w-5 h-5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="top" className="text-xs w-auto p-2">
+        <div className="flex flex-col gap-1">
+          {rows.map((row, i) => (
+            <div key={i} className="flex items-center justify-between gap-4 whitespace-nowrap">
+              <span className="text-muted-foreground">{row.label}:</span>
+              <span className={`${balanceColor(row.balance, advanceDays)} font-medium`}>{row.balance.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -79,28 +93,31 @@ function MonthHeader({ month }: { month: Date }) {
     ep => endOfMonthDate >= ep.startDate && endOfMonthDate < ep.expiryDate && !ep.expired
   );
 
+  const breakdownRows: BreakdownRow[] = [];
+  if (leftBalance) {
+    breakdownRows.push({ label: `Ferieåret ${formatVacationYearLabel(leftBalance.year)}`, balance: leftBalance.balance });
+  }
+  if (rightBalance) {
+    breakdownRows.push({ label: `Ferieåret ${formatVacationYearLabel(rightBalance.year)}`, balance: rightBalance.balance });
+  }
+  for (const ep of activeExtraPeriods) {
+    breakdownRows.push({ label: 'Ekstra feriedage', balance: ep.balance });
+  }
+
+  const totalBalance = breakdownRows.reduce((sum, r) => sum + r.balance, 0);
+
   return (
-    <div className="flex items-center justify-between mb-1 gap-1">
-      <div className="flex-1 min-w-0">
-        {leftBalance ? (
-          <VacationYearBadge year={leftBalance.year} balance={leftBalance.balance} advanceDays={state.advanceDays} />
-        ) : (
-          <span className="text-xs text-transparent">--/--: 0.00</span>
-        )}
+    <div className="relative flex flex-col items-center justify-center mb-2">
+      <h3 className="text-sm font-semibold capitalize">{monthName}</h3>
+      <div className="flex items-center gap-1 mt-0.5 text-xs whitespace-nowrap">
+        <span className="text-muted-foreground">Feriedage:</span>{' '}
+        <span className={`${balanceColor(totalBalance, state.advanceDays)} font-medium`}>{totalBalance.toFixed(2)}</span>
       </div>
-      <h3 className="text-sm font-semibold text-center flex-shrink-0 capitalize">
-        {monthName}
-      </h3>
-      <div className="flex flex-col items-end flex-1 min-w-0">
-        {rightBalance ? (
-          <VacationYearBadge year={rightBalance.year} balance={rightBalance.balance} advanceDays={state.advanceDays} />
-        ) : (
-          <span className="text-xs text-transparent">--/--: 0.00</span>
-        )}
-        {activeExtraPeriods.map((ep, i) => (
-          <ExtraDayBadge key={i} period={ep} advanceDays={state.advanceDays} />
-        ))}
-      </div>
+      {breakdownRows.length > 0 && (
+        <div className="absolute right-1 top-1/2 -translate-y-1/2">
+          <BalanceDetailsPopover rows={breakdownRows} advanceDays={state.advanceDays} />
+        </div>
+      )}
     </div>
   );
 }
