@@ -51,18 +51,6 @@ describe('computeAllStatuses', () => {
     expect(result['2026-01-07']).toBe('selected-warning');
   });
 
-  it('earnFromSameMonth=false: first selected day in January is overdrawn (no days credited yet)', () => {
-    // startDate Jan 1, earnFromSameMonth=false → Jan's 2.08 days only available from Feb 1
-    // So on Jan 5 balance = 0 → selecting it means overdrawn immediately
-    const selected = ['2026-01-05'];
-    const result = computeAllStatuses(
-      selected,
-      selected,
-      {},
-      '2026-01-01', 0, 5, 5, 0, 5, false
-    );
-    expect(result['2026-01-05']).toBe('selected-overdrawn');
-  });
 
 });
 
@@ -250,16 +238,6 @@ describe('getVacationYearBalances', () => {
     expect(ep2027.used).toBeCloseTo(1); // new grant covers May 1
   });
 
-  it('earnFromSameMonth=false: extra grant period shifts one month', () => {
-    const { extraPeriods } = getVacationYearBalances(
-      '2025-09-01', 0, 5, 5, [], {}, '2026-07-01', 5, false
-    );
-    // Natural grant May 2026 → startDate shifts to Jun 2026 when !earnFromSameMonth
-    const ep = extraPeriods.find(ep => ep.startDate === '2026-06-01');
-    expect(ep).toBeDefined();
-    expect(ep!.expiryDate).toBe('2027-05-01'); // expiry still anchored to natural grant
-  });
-
   it('extras not emitted when extraDaysCount is 0', () => {
     const { extraPeriods } = getVacationYearBalances(
       '2025-09-01', 0, 5, 0, [], {}, '2026-06-01'
@@ -267,19 +245,6 @@ describe('getVacationYearBalances', () => {
     expect(extraPeriods).toHaveLength(0);
   });
 
-  it('earnFromSameMonth=false delays earn by one month', () => {
-    // Start Sep 2025, check at Jan 2026
-    // earnFromSameMonth=true: Sep, Oct, Nov, Dec, Jan = 5 months = 10.4
-    // earnFromSameMonth=false: only Sep-Dec credited by Jan 1 (Jan's days available from Feb 1) = 4 months = 8.32
-    const { vacationYears: balancesTrue } = getVacationYearBalances(
-      '2025-09-01', 0, 5, 5, [], {}, '2026-01-01', 5, true
-    );
-    const { vacationYears: balancesFalse } = getVacationYearBalances(
-      '2025-09-01', 0, 5, 5, [], {}, '2026-01-01', 5, false
-    );
-    expect(balancesTrue[0].earned).toBeCloseTo(10.4);
-    expect(balancesFalse[0].earned).toBeCloseTo(8.32); // 4 months × 2.08
-  });
 });
 
 describe('enumerateExtraPeriods', () => {
@@ -300,13 +265,6 @@ describe('enumerateExtraPeriods', () => {
     // May 2026 grant (natural date Sep 2026) is included
     const periods = enumerateExtraPeriods('2026-09-01', '2027-12-31', 5, 5);
     expect(periods.every(ep => ep.expiryDate > '2026-09-01')).toBe(true);
-  });
-
-  it('shifts startDate by one month when earnFromSameMonth=false', () => {
-    const periods = enumerateExtraPeriods('2025-09-01', '2026-12-31', 5, 5, false);
-    const ep = periods.find(ep => ep.expiryDate === '2027-05-01');
-    expect(ep).toBeDefined();
-    expect(ep!.startDate).toBe('2026-06-01');
   });
 
   it('marks period as expired when atDate >= expiryDate', () => {
@@ -411,7 +369,7 @@ describe('buildTimelineEvents', () => {
 
   it('generates extra-grant and extra-expiry events from extraPeriods', () => {
     const extraPeriods: ExtraPoolState[] = [makeExtraPool({ startDate: '2026-05-01', expiryDate: '2027-05-01' })];
-    const events = buildTimelineEvents(2025, 1, '2025-09-01', true, extraPeriods);
+    const events = buildTimelineEvents(2025, 1, '2025-09-01', extraPeriods);
     const grantEvents = events.filter(e => e.kind === 'extra-grant');
     const expiryEvents = events.filter(e => e.kind === 'extra-expiry');
     expect(grantEvents).toHaveLength(1);
@@ -429,7 +387,7 @@ describe('buildTimelineEvents', () => {
 
   it('sorts events by date, then earn/extra-grant before expiry', () => {
     const extraPeriods: ExtraPoolState[] = [makeExtraPool()];
-    const events = buildTimelineEvents(2025, 2, '2025-09-01', true, extraPeriods);
+    const events = buildTimelineEvents(2025, 2, '2025-09-01', extraPeriods);
     for (let i = 1; i < events.length; i++) {
       const prev = events[i - 1];
       const curr = events[i];

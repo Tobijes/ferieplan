@@ -11,7 +11,7 @@ function YearSeparator({ year }: { year: number }) {
   const { vacationYears } = getVacationYearBalances(
     state.startDate, state.initialVacationDays, state.extraDaysMonth,
     state.extraDaysCount, state.selectedDates, state.enabledHolidays,
-    `${year + 1}-01-01`, state.maxTransferDays, state.earnFromSameMonth
+    `${year + 1}-01-01`, state.maxTransferDays
   );
   const expiring = vacationYears.find((b) => b.year === expiringVacationYear && b.expired);
   const lostDays = expiring?.lost ?? 0;

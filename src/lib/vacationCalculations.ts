@@ -51,8 +51,7 @@ function usablePeriodEnd(vacationYear: number): string {
 function earnedInVacationYear(
   vacationYear: number,
   atDate: string,
-  employmentStartDate: string,
-  earnFromSameMonth: boolean = true
+  employmentStartDate: string
 ): number {
   const obtain = obtainPeriod(vacationYear);
 
@@ -62,11 +61,9 @@ function earnedInVacationYear(
   // Effective start is the later of obtain period start and employment start month
   const effectiveStart = obtain.start > employmentStartMonthStart ? obtain.start : employmentStartMonthStart;
 
-  // Calculate earn-end boundary based on earnFromSameMonth setting
+  // Calculate earn-end boundary: days are usable from the 1st of the earn month
   const atDateParsed = parseISO(atDate);
-  const earnEndDate = earnFromSameMonth
-    ? addMonths(startOfMonth(atDateParsed), 1)
-    : startOfMonth(atDateParsed);
+  const earnEndDate = addMonths(startOfMonth(atDateParsed), 1);
   const nextMonthStart = format(earnEndDate, 'yyyy-MM-dd');
 
   // Effective end is the earlier of obtain period end and earn-end boundary
@@ -85,14 +82,12 @@ function earnedInVacationYear(
  * Enumerate all extra-day grant periods overlapping the given date window.
  * Each grant is tied to a calendar year and runs for approximately one year.
  * The grant date is 1st of extraDaysMonth; expiry (exclusive) is 1st of the same month next year.
- * When earnFromSameMonth is false, the first usable date shifts one month forward.
  */
 export function enumerateExtraPeriods(
   startDate: string,
   atDate: string,
   extraDaysMonth: number,
-  extraDaysCount: number,
-  earnFromSameMonth: boolean = true
+  extraDaysCount: number
 ): ExtraDayPeriod[] {
   if (extraDaysCount <= 0) return [];
 
@@ -110,15 +105,8 @@ export function enumerateExtraPeriods(
     // Skip periods entirely before employment
     if (expiryDate <= startDate) continue;
 
-    // First-usable date respects earnFromSameMonth
-    let periodStart: string;
-    if (earnFromSameMonth) {
-      periodStart = naturalGrantDate;
-    } else {
-      // Shift one month forward
-      const shifted = addMonths(parseISO(naturalGrantDate), 1);
-      periodStart = format(shifted, 'yyyy-MM-dd');
-    }
+    // First-usable date
+    const periodStart = naturalGrantDate;
 
     // Clamp to employment start
     const effectiveStart = periodStart < startDate ? startDate : periodStart;
@@ -153,8 +141,7 @@ export function getVacationYearBalances(
   selectedDates: string[],
   enabledHolidays: Record<string, boolean>,
   atDate: string,
-  maxTransferDays: number = 5,
-  earnFromSameMonth: boolean = true
+  maxTransferDays: number = 5
 ): VacationYearBalancesResult {
   // Determine range of vacation years to consider
   const startVacationYear = getVacationYearForDate(startDate);
@@ -166,7 +153,7 @@ export function getVacationYearBalances(
 
   // Build balance objects (no extra field)
   const vacationYears: VacationYearBalance[] = vacationYearNums.map((year) => {
-    const earned = earnedInVacationYear(year, atDate, startDate, earnFromSameMonth);
+    const earned = earnedInVacationYear(year, atDate, startDate);
     const expEnd = usablePeriodEnd(year);
     const expired = atDate > expEnd;
 
@@ -187,7 +174,7 @@ export function getVacationYearBalances(
   }
 
   // Build extra-day periods
-  const extraPeriods = enumerateExtraPeriods(startDate, atDate, extraDaysMonth, extraDaysCount, earnFromSameMonth);
+  const extraPeriods = enumerateExtraPeriods(startDate, atDate, extraDaysMonth, extraDaysCount);
 
   // Step 1: Allocate used days — extras first, then ferieår waterfall
   const usedDates = [...selectedDates]
@@ -320,7 +307,6 @@ export function buildTimelineEvents(
   firstVacationYear: number,
   vacationYearCount: number,
   employmentMonthStart: string,
-  earnFromSameMonth: boolean = true,
   extraPeriods: ExtraPoolState[] = []
 ): TimelineEvent[] {
   const events: TimelineEvent[] = [];
@@ -337,7 +323,7 @@ export function buildTimelineEvents(
     const obtainEndDate = parseISO(obtainEndStr);
     const monthCount = differenceInMonths(obtainEndDate, effectiveEarnStartDate);
     for (let m = 0; m < monthCount; m++) {
-      const earnDate = addMonths(effectiveEarnStartDate, earnFromSameMonth ? m : m + 1);
+      const earnDate = addMonths(effectiveEarnStartDate, m);
       events.push({
         date: format(earnDate, 'yyyy-MM-dd'),
         priority: 0, yearIndex: i, kind: 'earn',
@@ -503,8 +489,7 @@ export function computeAllStatuses(
   extraDaysMonth: number,
   extraDaysCount: number,
   advanceDays: number,
-  maxTransferDays: number = 5,
-  earnFromSameMonth: boolean = true
+  maxTransferDays: number = 5
 ): Record<string, DayStatus> {
   const selectedSet = new Set(selectedDates);
   const result = classifyStaticDates(dates, startDate, enabledHolidays, selectedSet);
@@ -521,7 +506,7 @@ export function computeAllStatuses(
 
   // Compute extra periods for the timeline window
   const lastSelectedDate = sortedSelected[sortedSelected.length - 1];
-  const extraPeriodDefs = enumerateExtraPeriods(startDate, lastSelectedDate, extraDaysMonth, extraDaysCount, earnFromSameMonth);
+  const extraPeriodDefs = enumerateExtraPeriods(startDate, lastSelectedDate, extraDaysMonth, extraDaysCount);
 
   // Build extra pools mirroring the period defs (granted starts at 0; populated by grant events)
   const extraPools: ExtraPoolState[] = extraPeriodDefs.map(ep => ({
@@ -534,7 +519,7 @@ export function computeAllStatuses(
 
   const events = buildTimelineEvents(
     firstVacationYear, vacationYearCount, employmentMonthStart,
-    earnFromSameMonth, extraPools
+    extraPools
   );
 
   const vacationYears: VacationYearState[] = Array.from({ length: vacationYearCount }, (_, i) => ({

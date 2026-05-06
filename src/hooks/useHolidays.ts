@@ -6,7 +6,6 @@ const emptyData: DefaultData = {
   extraHoliday: { defaultMonth: 5, defaultCount: 5 },
   advanceDays: 0,
   maxTransferDays: 5,
-  earnFromSameMonth: true,
 };
 
 export function useDefaults() {

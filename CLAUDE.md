@@ -118,7 +118,6 @@ interface VacationState {
   holidays: Holiday[];            // full holiday list (persisted, seeded from default.json)
   advanceDays: number;            // max borrowable vacation days (forskudsferie), default: 0
   maxTransferDays: number;        // max days transferable between ferieår, default: 5
-  earnFromSameMonth: boolean;     // if true, earned days usable from 1st of earn month; if false, from 1st of next month; default: true
 }
 
 interface VacationYearBalance {
@@ -132,7 +131,7 @@ interface VacationYearBalance {
 }
 
 interface ExtraDayPeriod {
-  startDate: string;   // first usable ISO date (1st of extraDaysMonth, or next month if !earnFromSameMonth)
+  startDate: string;   // first usable ISO date (1st of extraDaysMonth)
   expiryDate: string;  // first NON-usable ISO date (exclusive) — 1st of extraDaysMonth next year
   granted: number;     // = extraDaysCount for this period
   used: number;        // days consumed against this period
@@ -161,8 +160,8 @@ A single string value: the Firebase Cloud Storage `generation` of the last synce
 
 Balances are computed per **ferieår** (vacation year). Ferieår N runs Sep 1 Year N → Aug 31 Year N+1 (obtain period), and days are usable Sep 1 Year N → Dec 31 Year N+1.
 
-1. Per ferieår, each month within the obtain period earns 2.08 days. When `earnFromSameMonth` is `true` (default), days are usable from the 1st of the earn month. When `false`, days are first usable from the 1st of the following month. Employment start is always rounded to start of month.
-2. **Extra days run on an independent cycle** (not pooled into the ferieår): each calendar year a grant of `extraDaysCount` days is created on the 1st of `extraDaysMonth`. The grant is usable through the day before the next year's grant date (i.e. `expiryDate = ${year+1}-MM-01`, exclusive). When `earnFromSameMonth=false`, the first usable day shifts one month forward but expiry stays anchored to the natural grant anniversary. All grants are recomputed from current config (no per-grant history stored).
+1. Per ferieår, each month within the obtain period earns 2.08 days. Days are usable from the 1st of the earn month. Employment start is always rounded to start of month.
+2. **Extra days run on an independent cycle** (not pooled into the ferieår): each calendar year a grant of `extraDaysCount` days is created on the 1st of `extraDaysMonth`. The grant is usable through the day before the next year's grant date (i.e. `expiryDate = ${year+1}-MM-01`, exclusive). All grants are recomputed from current config (no per-grant history stored).
 3. Used days (selected dates excluding holidays) are allocated with **extras first, then ferieår waterfall**: each day first consumes from any active `ExtraDayPeriod` (in chronological order), then from the earliest non-expired ferieår with remaining balance, with splitting when a year has partial balance. Only when all active years are exhausted does the balance go negative (borrowing from the latest usable ferieår). Extras are never borrowed against.
 4. When a ferieår expires, up to `maxTransferDays` (default 5) surplus **earned** days transfer to the next ferieår; the rest are lost. Extra days are fully independent and do not participate in this transfer.
 5. `initialVacationDays` are added to the earliest ferieår's balance

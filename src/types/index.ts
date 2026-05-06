@@ -12,7 +12,6 @@ export interface DefaultData {
   };
   advanceDays: number;
   maxTransferDays: number;
-  earnFromSameMonth: boolean;
 }
 
 export interface VacationState {
@@ -25,7 +24,6 @@ export interface VacationState {
   holidays: Holiday[];
   advanceDays: number;
   maxTransferDays: number;
-  earnFromSameMonth: boolean;
 }
 
 export interface VacationYearBalance {
@@ -39,7 +37,7 @@ export interface VacationYearBalance {
 }
 
 export interface ExtraDayPeriod {
-  startDate: string;   // first usable ISO date (1st of extraDaysMonth, or next month if !earnFromSameMonth)
+  startDate: string;   // first usable ISO date (1st of extraDaysMonth)
   expiryDate: string;  // first NON-usable ISO date (exclusive) — 1st of extraDaysMonth next year
   granted: number;     // = extraDaysCount for this period
   used: number;        // days consumed against this period
