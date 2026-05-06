@@ -33,7 +33,7 @@ function AppContent() {
   // Seed holidays and config on first load
   useEffect(() => {
     if (defaults.holidays.length > 0) {
-      initDefaults(defaults.holidays, defaults.extraHoliday.defaultMonth, defaults.extraHoliday.defaultCount, defaults.advanceDays, defaults.maxTransferDays);
+      initDefaults(defaults.holidays, defaults.extraDaysMonth, defaults.extraDaysCount, defaults.advanceDays, defaults.maxTransferDays);
     }
   }, [defaults, initDefaults, state.holidays.length]);
 
