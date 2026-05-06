@@ -1,6 +1,5 @@
 import type { Holiday, VacationBalances, VacationState } from "@/types";
-import { Account, prettyPrintAccounts } from "@/types/account";
-import defaultData from "../../public/default.json";
+import { Account } from "@/types/account";
 import { MonthName, Month } from "@/types/month";
 import type { MonthString, DateString } from "@/types/month";
 
@@ -95,7 +94,7 @@ function getEndMonth(holidays: Holiday[]): Month {
   return new Month(maxYear, MonthName.DECEMBER);
 }
 
-function computeBalances(state: VacationState): VacationBalances {
+export function computeBalances(state: VacationState): VacationBalances {
   const startMonth = getStartMonth(state.startDate);
   const endMonth = getEndMonth(state.holidays);
   const allMonths = startMonth.allMonthUntil(endMonth);
@@ -117,11 +116,13 @@ function computeBalances(state: VacationState): VacationBalances {
   }
 
   const extraDaysAccounts = [];
-  for (const month of allMonths.filter((m) =>
-    m.is(state.extraDaysMonth as MonthName),
-  )) {
-    const account = createExtraDaysAccount(month, state.extraDaysCount);
-    extraDaysAccounts.push(account);
+  if (state.extraDaysCount > 0) {
+    for (const month of allMonths.filter((m) =>
+      m.is(state.extraDaysMonth as MonthName),
+    )) {
+      const account = createExtraDaysAccount(month, state.extraDaysCount);
+      extraDaysAccounts.push(account);
+    }
   }
 
   const accounts = [...extraDaysAccounts, ...vacationAccounts];
@@ -227,91 +228,4 @@ function computeBalances(state: VacationState): VacationBalances {
 
   }
   return balances;
-  // return [
-  //   selectedAccount,
-  //   ...extraDaysAccounts,
-  //   ...vacationAccounts,
-  //   boughtDaysAccount,
-  //   lostDaysAccount,
-  //   transferDaysAccount,
-  // ];
 }
-
-const vacationState = {
-  ...defaultData,
-  selectedDates: [
-    // "2025-11-01",
-    // "2025-11-02",
-    // "2025-11-03",
-    // "2025-11-04",
-    // "2025-11-05",
-    // "2025-11-06",
-    // "2025-11-07",
-    // "2025-11-08",
-    // "2025-11-09",
-    "2025-12-25",
-    // "2026-03-17",
-    // "2026-03-18",
-    // "2026-03-19",
-    // "2026-03-20",
-    // "2026-07-01",
-    // "2026-07-02",
-    // "2026-07-03",
-    // "2026-07-04",
-    // "2026-07-17",
-    // "2026-07-18",
-    // "2026-07-19",
-    // "2026-07-20",
-    // "2026-11-02",
-    // "2026-11-03",
-    // "2026-11-04",
-    // "2026-11-05",
-    // "2026-11-06",
-    // "2026-11-07",
-    // "2026-11-08",
-    // "2026-11-09",
-    // "2026-11-10",
-    // "2026-11-11",
-  ],
-} as VacationState;
-
-// vacationState.selectedDates = [
-//   "2025-09-01",
-//   "2025-09-02",
-//   "2025-09-03",
-//   "2025-09-04",
-//   "2025-09-05",
-//   "2025-09-08",
-//   "2025-09-09",
-//   "2025-09-10",
-//   "2025-09-11",
-//   "2025-09-12",
-//   "2025-09-15",
-//   "2025-09-16",
-//   "2025-09-17",
-//   "2025-09-18",
-//   "2025-09-19",
-//   "2025-09-22",
-//   "2025-09-23",
-//   "2025-09-24",
-//   "2025-09-25",
-//   "2025-09-26",
-//   "2025-09-29",
-//   "2025-09-30",
-//   "2025-10-01",
-//   "2025-10-02",
-//   "2025-10-03",
-//   "2025-10-06",
-//   "2025-10-07",
-//   "2025-10-08",
-//   "2025-10-09",
-//   "2025-10-10",
-//   // 3 weekdays in December 2026 (overlap: Vacation2025 AND Vacation2026 both cover this)
-//   "2026-12-01", // Tue
-//   "2026-12-02", // Wed
-//   "2026-12-03",
-// ];
-
-const vacationBalances = computeBalances(vacationState);
-
-prettyPrintAccounts(vacationBalances);

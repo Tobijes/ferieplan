@@ -34,7 +34,7 @@ For each selected non-holiday day, consumed in this order:
 
 ## 4. Transfer
 
-On ferieår expiry: `surplus = max(0, earned − used)`, `transferable = min(surplus, maxTransferDays)`, `lost = surplus − transferable`. Transfer only to immediate next ferieår. Extra days excluded.
+On ferieår expiry: `surplus = max(0, balance)`, `transferable = min(surplus, maxTransferDays)`, `lost = surplus − transferable`. Transfer only to immediate next ferieår. Extra days excluded. `initialVacationDays` are transferable as part of the balance.
 
 ## 5. Forskudsferie (Borrowing)
 
