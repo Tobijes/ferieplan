@@ -1,4 +1,4 @@
-import type { Holiday, VacationState } from "@/types";
+import type { Holiday, VacationBalances, VacationState } from "@/types";
 import { Account, prettyPrintAccounts } from "@/types/account";
 import defaultData from "../../public/default.json";
 import { MonthName, Month } from "@/types/month";
@@ -95,7 +95,7 @@ function getEndMonth(holidays: Holiday[]): Month {
   return new Month(maxYear, MonthName.DECEMBER);
 }
 
-function computeBalances(state: VacationState) {
+function computeBalances(state: VacationState): VacationBalances {
   const startMonth = getStartMonth(state.startDate);
   const endMonth = getEndMonth(state.holidays);
   const allMonths = startMonth.allMonthUntil(endMonth);
@@ -215,14 +215,26 @@ function computeBalances(state: VacationState) {
     }
   }
 
-  return [
-    selectedAccount,
-    ...extraDaysAccounts,
-    ...vacationAccounts,
-    boughtDaysAccount,
-    lostDaysAccount,
-    transferDaysAccount,
-  ];
+  const balances: VacationBalances = {
+    startMonth: startMonth,
+    endMonth: endMonth,
+    selectedAccount: selectedAccount,
+    vacationAccounts: vacationAccounts,
+    extraDaysAccounts: extraDaysAccounts,
+    boughtDaysAccount: boughtDaysAccount,
+    lostDaysAccount: lostDaysAccount,
+    transferDaysAccount: transferDaysAccount
+
+  }
+  return balances;
+  // return [
+  //   selectedAccount,
+  //   ...extraDaysAccounts,
+  //   ...vacationAccounts,
+  //   boughtDaysAccount,
+  //   lostDaysAccount,
+  //   transferDaysAccount,
+  // ];
 }
 
 const vacationState = {
@@ -300,6 +312,6 @@ const vacationState = {
 //   "2026-12-03",
 // ];
 
-const computedAccounts = computeBalances(vacationState);
+const vacationBalances = computeBalances(vacationState);
 
-prettyPrintAccounts(computedAccounts);
+prettyPrintAccounts(vacationBalances);

@@ -1,4 +1,6 @@
+
 import type { Account } from "./account";
+import type { Month } from "./month";
 
 export interface Holiday {
   date: string;
@@ -19,12 +21,14 @@ export interface VacationState {
 }
 
 export interface VacationBalances {
-  startMonth: string;
-  endMonth: string;
-  selectedAccount: Account[];
+  startMonth: Month;
+  endMonth: Month;
+  selectedAccount: Account;
   vacationAccounts: Account[];
   extraDaysAccounts: Account[];
-  bougthDaysAccounts: Account;
+  boughtDaysAccount: Account;
+  lostDaysAccount: Account,
+  transferDaysAccount: Account
 }
 
 export interface VacationYearBalance {

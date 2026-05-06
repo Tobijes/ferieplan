@@ -1,3 +1,4 @@
+import type { VacationBalances } from ".";
 import { Month, type MonthString } from "./month";
 
 /** Epsilon for floating-point balance comparisons */
@@ -83,9 +84,16 @@ export class Account {
 }
 
 export function prettyPrintAccounts(
-  accounts: Account[],
-  subtractions?: Record<MonthString, number>,
+  vacationBalances: VacationBalances
 ): void {
+  const accounts = [
+    vacationBalances.selectedAccount,
+    ...vacationBalances.extraDaysAccounts,
+    ...vacationBalances.vacationAccounts,
+    vacationBalances.boughtDaysAccount,
+    vacationBalances.lostDaysAccount,
+    vacationBalances.transferDaysAccount,
+  ]
   if (accounts.length === 0) return;
 
   // Deduplicate by key (string), then reconstruct sorted Month array
@@ -102,17 +110,6 @@ export function prettyPrintAccounts(
 
   const header = allMonths.map((m) => m.short.padStart(COL_WIDTH)).join("");
   console.log("".padStart(LABEL_WIDTH) + header);
-
-  if (subtractions) {
-    const label = "Brugervalg".padEnd(LABEL_WIDTH);
-    const values = allMonths
-      .map((m) => {
-        if (!(m.key in subtractions)) return "".padStart(COL_WIDTH);
-        return `-${subtractions[m.key]}`.padStart(COL_WIDTH);
-      })
-      .join("");
-    console.log(label + values);
-  }
 
   for (const account of accounts) {
     const label = account.name.padEnd(LABEL_WIDTH);
