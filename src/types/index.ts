@@ -1,17 +1,9 @@
+import type { Account } from "./account";
+
 export interface Holiday {
   date: string;
   name: string;
   enabled: boolean;
-}
-
-export interface DefaultData {
-  holidays: Holiday[];
-  extraHoliday: {
-    defaultMonth: number;
-    defaultCount: number;
-  };
-  advanceDays: number;
-  maxTransferDays: number;
 }
 
 export interface VacationState {
@@ -26,14 +18,23 @@ export interface VacationState {
   maxTransferDays: number;
 }
 
+export interface VacationBalances {
+  startMonth: string;
+  endMonth: string;
+  selectedAccount: Account[];
+  vacationAccounts: Account[];
+  extraDaysAccounts: Account[];
+  bougthDaysAccounts: Account;
+}
+
 export interface VacationYearBalance {
-  year: number;        // vacation year start year (e.g. 2025 = Sep 2025 → Aug 2026, usable until Dec 2026)
-  earned: number;      // days earned so far in this vacation year
-  used: number;        // days consumed from this vacation year
+  year: number; // vacation year start year (e.g. 2025 = Sep 2025 → Aug 2026, usable until Dec 2026)
+  earned: number; // days earned so far in this vacation year
+  used: number; // days consumed from this vacation year
   transferred: number; // days transferred from previous expired vacation year (max maxTransferDays)
-  balance: number;     // earned + transferred - used
-  lost: number;        // earned-day surplus lost at expiry (excess beyond maxTransferDays)
-  expired: boolean;    // true if atDate > Dec 31 of year+1
+  balance: number; // earned + transferred - used
+  lost: number; // earned-day surplus lost at expiry (excess beyond maxTransferDays)
+  expired: boolean; // true if atDate > Dec 31 of year+1
 }
 
 export interface ExtraDayPeriod {
@@ -51,12 +52,17 @@ export interface VacationYearBalancesResult {
 }
 
 export type DayStatus =
-  | 'normal'
-  | 'weekend'
-  | 'holiday'
-  | 'selected-ok'
-  | 'selected-warning'
-  | 'selected-overdrawn'
-  | 'before-start';
+  | "normal"
+  | "weekend"
+  | "holiday"
+  | "selected-ok"
+  | "selected-warning"
+  | "selected-overdrawn"
+  | "before-start";
 
-export type SyncStatus = 'disconnected' | 'syncing' | 'synced' | 'pending' | 'error';
+export type SyncStatus =
+  | "disconnected"
+  | "syncing"
+  | "synced"
+  | "pending"
+  | "error";

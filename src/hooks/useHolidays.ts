@@ -1,20 +1,25 @@
-import { useState, useEffect } from 'react';
-import type { DefaultData } from '@/types';
+import { useState, useEffect } from "react";
+import type { VacationState } from "@/types";
 
-const emptyData: DefaultData = {
+const emptyData: VacationState = {
   holidays: [],
-  extraHoliday: { defaultMonth: 5, defaultCount: 5 },
+  extraDaysCount: 5,
+  extraDaysMonth: 5,
   advanceDays: 0,
   maxTransferDays: 5,
+  startDate: "2025-09-01",
+  initialVacationDays: 0,
+  selectedDates: [],
+  enabledHolidays: {},
 };
 
 export function useDefaults() {
-  const [data, setData] = useState<DefaultData>(emptyData);
+  const [data, setData] = useState<VacationState>(emptyData);
 
   useEffect(() => {
-    fetch('/default.json')
+    fetch("/default.json")
       .then((r) => r.json())
-      .then((d: DefaultData) => setData(d))
+      .then((d: VacationState) => setData(d))
       .catch(console.error);
   }, []);
 
