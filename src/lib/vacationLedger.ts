@@ -76,11 +76,6 @@ function getPreviousMonthName(month: Month, monthName: MonthName): Month {
   return new Month(year, monthName);
 }
 
-function getNextMonthName(month: Month, monthName: MonthName): Month {
-  const year = month.month > monthName ? month.year + 1 : month.year;
-  return new Month(year, monthName);
-}
-
 /* Given the start date, find the previous september */
 function getStartMonth(startDate: DateString): Month {
   return new Month(startDate);
