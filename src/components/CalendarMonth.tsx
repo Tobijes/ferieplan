@@ -36,6 +36,7 @@ function balanceColor(balance: number, advanceDays: number): string {
 interface BreakdownRow {
   label: string;
   balance: number;
+  forceRed?: boolean;
 }
 
 function BalanceDetailsPopover({
@@ -67,7 +68,7 @@ function BalanceDetailsPopover({
             >
               <span className="text-muted-foreground">{row.label}:</span>
               <span
-                className={`${balanceColor(row.balance, advanceDays)} font-medium`}
+                className={`${row.forceRed ? "text-red-600" : balanceColor(row.balance, advanceDays)} font-medium`}
               >
                 {row.balance.toFixed(2)}
               </span>
@@ -104,6 +105,8 @@ function MonthHeader({ month }: { month: Date }) {
     (acc) => acc.has(calMonth),
   );
 
+  const boughtDays = vacationBalances.boughtDaysAccount.balanceAt(calMonth);
+
   const breakdownRows: BreakdownRow[] = [];
   for (const acc of activeVacationAccounts) {
     breakdownRows.push({ label: acc.name, balance: acc.balanceAt(calMonth) });
@@ -118,7 +121,9 @@ function MonthHeader({ month }: { month: Date }) {
 
   const totalBalance = breakdownRows.reduce((sum, r) => sum + r.balance, 0);
 
-  const boughtDays = vacationBalances.boughtDaysAccount.balanceAt(calMonth);
+  if (boughtDays > 0) {
+    breakdownRows.push({ label: vacationBalances.boughtDaysAccount.name, balance: -boughtDays, forceRed: true });
+  }
 
   return (
     <div className="relative flex flex-col items-center justify-center mb-2">
@@ -131,12 +136,8 @@ function MonthHeader({ month }: { month: Date }) {
           {totalBalance.toFixed(2)}
         </span>
         {boughtDays > 0 && (
-          <span className="text-muted-foreground">
-            {"- Mangler: "}
-            <span className="text-red-600 font-medium">
-              {boughtDays.toFixed(2)}
-            </span>
-            
+          <span className="text-red-600 font-medium">
+            {" "}( -{boughtDays.toFixed(2)} )
           </span>
         )}
       </div>

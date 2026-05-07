@@ -77,7 +77,7 @@ function AppContent() {
               </span>
               <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <span className="w-3 h-3 rounded-full bg-red-300" />
-                Overtræk
+                Overtræk (køb)
               </span>
             </div>
             <p className="text-sm text-muted-foreground text-center max-w-6xl w-full px-4">
