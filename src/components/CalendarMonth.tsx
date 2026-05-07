@@ -10,8 +10,8 @@ import {
 import { da } from "date-fns/locale";
 import { Info } from "lucide-react";
 import { DA_DAY_NAMES, toISODate } from "@/lib/dateUtils";
-import { getVacationYearBalances } from "@/lib/vacationCalculations";
 import { useVacation } from "@/context/VacationContext";
+import { Month } from "@/types/month";
 import { CalendarDay } from "./CalendarDay";
 import {
   Popover,
@@ -25,11 +25,6 @@ interface CalendarMonthProps {
   dayStatuses: Record<string, DayStatus>;
 }
 
-function formatVacationYearLabel(year: number): string {
-  const y1 = year % 100;
-  const y2 = (year + 1) % 100;
-  return `${y1.toString().padStart(2, "0")}/${y2.toString().padStart(2, "0")}`;
-}
 
 function balanceColor(balance: number, advanceDays: number): string {
   if (balance > 0) return "text-green-600";
@@ -85,9 +80,7 @@ function BalanceDetailsPopover({
 }
 
 function MonthHeader({ month }: { month: Date }) {
-  const { state } = useVacation();
-  const monthNum = month.getMonth(); // 0-indexed
-  const year = month.getFullYear();
+  const { state, vacationBalances } = useVacation();
   const monthName = format(month, "MMMM", { locale: da });
 
   const employmentMonthStart = startOfMonth(parseISO(state.startDate));
@@ -102,44 +95,30 @@ function MonthHeader({ month }: { month: Date }) {
     );
   }
 
-  // Calculate balances at end of month (earnedInVacationYear now credits days from start of month)
-  const endOfMonthDate = toISODate(monthEnd);
-  const { vacationYears, extraPeriods } = getVacationYearBalances(
-    state.startDate, state.initialVacationDays, state.extraDaysMonth,
-    state.extraDaysCount, state.selectedDates, state.enabledHolidays,
-    endOfMonthDate, state.maxTransferDays
+  const calMonth = new Month(month.getFullYear(), month.getMonth() + 1);
+
+  const activeVacationAccounts = vacationBalances.vacationAccounts.filter(
+    (acc) => acc.has(calMonth),
   );
-
-  // Jan-Aug (0-7): Only the previous vacation year is active
-  // Sep-Dec (8-11): Both the previous and the current vacation year are active
-  const activeVacationYearNumbers =
-    monthNum >= 8 ? [year - 1, year] : [year - 1];
-  const activeVacationYears = activeVacationYearNumbers
-    .map((y) => vacationYears.find((b) => b.year === y && !b.expired))
-    .filter((b) => b !== undefined);
-
-  // Find active extra periods covering this month (not yet expired)
-  const activeExtraPeriods = extraPeriods.filter(
-    (ep) =>
-      endOfMonthDate >= ep.startDate &&
-      endOfMonthDate < ep.expiryDate &&
-      !ep.expired,
+  const activeExtraAccounts = vacationBalances.extraDaysAccounts.filter(
+    (acc) => acc.has(calMonth),
   );
 
   const breakdownRows: BreakdownRow[] = [];
-  for (const balance of activeVacationYears) {
-    breakdownRows.push({
-      label: `Ferieåret ${formatVacationYearLabel(balance.year)}`,
-      balance: balance.balance,
-    });
+  for (const acc of activeVacationAccounts) {
+    breakdownRows.push({ label: acc.name, balance: acc.balanceAt(calMonth) });
   }
-  const extraBalance = activeExtraPeriods.reduce(
-    (sum, ep) => sum + ep.balance,
+  const extraBalance = activeExtraAccounts.reduce(
+    (sum, acc) => sum + acc.balanceAt(calMonth),
     0,
   );
-  breakdownRows.push({ label: "Feriefridage", balance: extraBalance });
+  if (vacationBalances.extraDaysAccounts.length > 0) {
+    breakdownRows.push({ label: "Feriefridage", balance: extraBalance });
+  }
 
   const totalBalance = breakdownRows.reduce((sum, r) => sum + r.balance, 0);
+
+  const boughtDays = vacationBalances.boughtDaysAccount.balanceAt(calMonth);
 
   return (
     <div className="relative flex flex-col items-center justify-center mb-2">
@@ -151,6 +130,15 @@ function MonthHeader({ month }: { month: Date }) {
         >
           {totalBalance.toFixed(2)}
         </span>
+        {boughtDays > 0 && (
+          <span className="text-muted-foreground">
+            {"- Mangler: "}
+            <span className="text-red-600 font-medium">
+              {boughtDays.toFixed(2)}
+            </span>
+            
+          </span>
+        )}
       </div>
       {breakdownRows.length > 0 && (
         <div className="absolute right-1 top-1/2 -translate-y-1/2">

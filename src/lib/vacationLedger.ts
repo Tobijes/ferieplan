@@ -18,7 +18,7 @@ function createVacationYearAccount(
     startMonth,
     MonthName.SEPTEMBER,
   );
-  const name = `Ferierået ${vacationYearActualStart.shortYear}/${vacationYearActualStart.addYears(1).shortYear}`;
+  const name = `Ferieåret ${vacationYearActualStart.shortYear}/${vacationYearActualStart.addYears(1).shortYear}`;
   const account = new Account(name, startMonth, endingMonth);
   account.rollingAdd(startMonth, initialVacationDays);
 
@@ -87,16 +87,15 @@ function getStartMonth(startDate: DateString): Month {
 }
 
 /* Given the holidays, find the last december */
-function getEndMonth(holidays: Holiday[]): Month {
-  const maxYear = Math.max(
-    ...holidays.map((h) => new Month(h.date)).map((m) => m.year),
-  );
+function getEndMonth(startMonth: Month, holidays: Holiday[]): Month {
+  const years = holidays.map((h) => new Month(h.date).year);
+  const maxYear = years.length > 0 ? Math.max(...years) : startMonth.year;
   return new Month(maxYear, MonthName.DECEMBER);
 }
 
 export function computeBalances(state: VacationState): VacationBalances {
   const startMonth = getStartMonth(state.startDate);
-  const endMonth = getEndMonth(state.holidays);
+  const endMonth = getEndMonth(startMonth, state.holidays);
   const allMonths = startMonth.allMonthUntil(endMonth);
   const selectedAccount = createSelectedAccount(
     startMonth,

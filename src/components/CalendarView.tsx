@@ -1,24 +1,14 @@
 import { Fragment } from 'react';
 import { useVacation } from '@/context/VacationContext';
 import { CalendarMonth } from './CalendarMonth';
-import { getVacationYearBalances } from '@/lib/vacationCalculations';
+import { Month } from '@/types/month';
 
 function YearSeparator({ year }: { year: number }) {
-  const { state } = useVacation();
+  const { vacationBalances } = useVacation();
 
-  // Vacation year that expires Dec 31 of this year is vacation year (year - 1)
-  const expiringVacationYear = year - 1;
-  const { vacationYears } = getVacationYearBalances(
-    state.startDate, state.initialVacationDays, state.extraDaysMonth,
-    state.extraDaysCount, state.selectedDates, state.enabledHolidays,
-    `${year + 1}-01-01`, state.maxTransferDays
-  );
-  const expiring = vacationYears.find((b) => b.year === expiringVacationYear && b.expired);
-  const lostDays = expiring?.lost ?? 0;
-
-  // Find next vacation year to get actual transferred amount
-  const nextVacationYear = vacationYears.find((b) => b.year === expiringVacationYear + 1);
-  const actualTransferred = nextVacationYear?.transferred ?? 0;
+  const decemberMonth = new Month(year, 12);
+  const lostDays = vacationBalances.lostDaysAccount.balanceAt(decemberMonth);
+  const actualTransferred = vacationBalances.transferDaysAccount.balanceAt(decemberMonth);
 
   let separatorText: React.ReactNode;
   if (actualTransferred === 0 && lostDays === 0) {
@@ -31,17 +21,17 @@ function YearSeparator({ year }: { year: number }) {
   } else if (lostDays === 0) {
     // Some days transferred, none lost
     separatorText = (
-      <span className="text-xs text-muted-foreground text-center">
-        {actualTransferred.toFixed(2)} feriedage overføres til næste ferieår
+      <span className="text-xs text-center">
+        <span className="text-green-600 font-bold">{actualTransferred.toFixed(2)}</span>
+        <span className="text-muted-foreground"> feriedage overføres til næste ferieår</span>
       </span>
     );
   } else {
     // Some days transferred, some lost
     separatorText = (
       <span className="text-xs text-center">
-        <span className="text-muted-foreground">
-          {actualTransferred.toFixed(2)} feriedage overføres til næste ferieår,{' '}
-        </span>
+        <span className="text-green-600 font-bold">{actualTransferred.toFixed(2)}</span>
+        <span className="text-muted-foreground"> feriedage overføres til næste ferieår, </span>
         <span className="text-red-600 font-bold">{lostDays.toFixed(2)}</span>
         <span className="text-muted-foreground"> feriedage overføres ikke</span>
       </span>

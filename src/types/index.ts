@@ -31,29 +31,6 @@ export interface VacationBalances {
   transferDaysAccount: Account
 }
 
-export interface VacationYearBalance {
-  year: number; // vacation year start year (e.g. 2025 = Sep 2025 → Aug 2026, usable until Dec 2026)
-  earned: number; // days earned so far in this vacation year
-  used: number; // days consumed from this vacation year
-  transferred: number; // days transferred from previous expired vacation year (max maxTransferDays)
-  balance: number; // earned + transferred - used
-  lost: number; // earned-day surplus lost at expiry (excess beyond maxTransferDays)
-  expired: boolean; // true if atDate > Dec 31 of year+1
-}
-
-export interface ExtraDayPeriod {
-  startDate: string;   // first usable ISO date (1st of extraDaysMonth)
-  expiryDate: string;  // first NON-usable ISO date (exclusive) — 1st of extraDaysMonth next year
-  granted: number;     // = extraDaysCount for this period
-  used: number;        // days consumed against this period
-  balance: number;     // granted - used (snapped to 0 within EPS)
-  expired: boolean;    // atDate >= expiryDate
-}
-
-export interface VacationYearBalancesResult {
-  vacationYears: VacationYearBalance[];
-  extraPeriods: ExtraDayPeriod[];
-}
 
 export type DayStatus =
   | "normal"

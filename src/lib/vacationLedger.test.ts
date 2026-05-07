@@ -63,9 +63,9 @@ describe("vacationLedger - basic structure", () => {
     const balances = computeBalances(makeState({ selectedDates: [] }));
 
     expect(balances.vacationAccounts).toHaveLength(3);
-    expect(balances.vacationAccounts[0].name).toBe("Ferierået 25/26");
-    expect(balances.vacationAccounts[1].name).toBe("Ferierået 26/27");
-    expect(balances.vacationAccounts[2].name).toBe("Ferierået 27/28");
+    expect(balances.vacationAccounts[0].name).toBe("Ferieåret 25/26");
+    expect(balances.vacationAccounts[1].name).toBe("Ferieåret 26/27");
+    expect(balances.vacationAccounts[2].name).toBe("Ferieåret 27/28");
   });
 
   it("creates correct extra days accounts with default config", () => {
@@ -92,7 +92,7 @@ describe("vacationLedger - basic structure", () => {
 describe("vacationLedger - ferieår earning", () => {
   it("accrues 2.08 per month for 12 months in obtain period", () => {
     const balances = computeBalances(makeState({ selectedDates: [] }));
-    const vy2526 = findAccount(balances, "Ferierået 25/26")!;
+    const vy2526 = findAccount(balances, "Ferieåret 25/26")!;
     const r = rec(vy2526);
 
     // First month (2025-09): 2.08
@@ -110,8 +110,8 @@ describe("vacationLedger - ferieår earning", () => {
     const balances = computeBalances(
       makeState({ selectedDates: [], initialVacationDays: 10 }),
     );
-    const vy2526 = findAccount(balances, "Ferierået 25/26")!;
-    const vy2627 = findAccount(balances, "Ferierået 26/27")!;
+    const vy2526 = findAccount(balances, "Ferieåret 25/26")!;
+    const vy2627 = findAccount(balances, "Ferieåret 26/27")!;
 
     // Earliest year gets +10 at start
     expect(rec(vy2526)["2025-09"]).toBeCloseTo(10 + 2.08);
@@ -147,11 +147,11 @@ describe("vacationLedger - allocation waterfall", () => {
       makeState({ selectedDates: ["2026-05-05"] }),
     );
     const extra2627 = findAccount(balances, "Feriefridage 26/27")!;
-    const vy2526 = findAccount(balances, "Ferierået 25/26")!;
+    const vy2526 = findAccount(balances, "Ferieåret 25/26")!;
 
     // Extra pool absorbs the day (5 → 4)
     expect(rec(extra2627)["2026-05"]).toBeCloseTo(4);
-    // Ferierået untouched at 2026-05 (earned 9 months = 9×2.08 = 18.72)
+    // Ferieåret untouched at 2026-05 (earned 9 months = 9×2.08 = 18.72)
     expect(rec(vy2526)["2026-05"]).toBeCloseTo(18.72);
   });
 
@@ -160,7 +160,7 @@ describe("vacationLedger - allocation waterfall", () => {
     const dates = generateWeekdays(2026, 5, 6);
     const balances = computeBalances(makeState({ selectedDates: dates }));
     const extra2627 = findAccount(balances, "Feriefridage 26/27")!;
-    const vy2526 = findAccount(balances, "Ferierået 25/26")!;
+    const vy2526 = findAccount(balances, "Ferieåret 25/26")!;
 
     // All 5 extras used
     expect(rec(extra2627)["2026-05"]).toBeCloseTo(0);
@@ -182,8 +182,8 @@ describe("vacationLedger - allocation waterfall", () => {
     const balances = computeBalances(
       makeState({ selectedDates: selected, extraDaysCount: 0 }),
     );
-    const vy2526 = findAccount(balances, "Ferierået 25/26")!;
-    const vy2627 = findAccount(balances, "Ferierået 26/27")!;
+    const vy2526 = findAccount(balances, "Ferieåret 25/26")!;
+    const vy2627 = findAccount(balances, "Ferieåret 26/27")!;
 
     // vy2526 exhausted at Sep 2026 (0.96 − 0.96 = 0)
     expect(rec(vy2526)["2026-09"]).toBeCloseTo(0);
@@ -197,7 +197,7 @@ describe("vacationLedger - transfer on expiry", () => {
     // No selections — vy2526 has full 24.96 at Dec 2026
     // Transfer in Jan 2027 = min(5, 24.96) = 5
     const balances = computeBalances(makeState({ selectedDates: [] }));
-    const vy2627 = findAccount(balances, "Ferierået 26/27")!;
+    const vy2627 = findAccount(balances, "Ferieåret 26/27")!;
     const transfer = findAccount(balances, "Overførte feriedage")!;
     const lost = findAccount(balances, "Tabte feriedage")!;
 
@@ -222,7 +222,7 @@ describe("vacationLedger - transfer on expiry", () => {
     );
     const transfer = findAccount(balances, "Overførte feriedage")!;
     const lost = findAccount(balances, "Tabte feriedage")!;
-    const vy2627 = findAccount(balances, "Ferierået 26/27")!;
+    const vy2627 = findAccount(balances, "Ferieåret 26/27")!;
 
     // 4.16 remaining → all transferred (≤ 5)
     expect(rec(transfer)["2026-12"]).toBeCloseTo(4.16);
@@ -283,7 +283,7 @@ describe("vacationLedger - borrowing (forskudsferie)", () => {
         advanceDays: 5,
       }),
     );
-    const vy2526 = findAccount(balances, "Ferierået 25/26")!;
+    const vy2526 = findAccount(balances, "Ferieåret 25/26")!;
     const bought = findAccount(balances, "Købte feriedage")!;
 
     // 2.08 earned, 5 selected. 2.08 from balance, 2.92 borrowed (within 5 limit)
@@ -300,7 +300,7 @@ describe("vacationLedger - borrowing (forskudsferie)", () => {
         advanceDays: 5,
       }),
     );
-    const vy2526 = findAccount(balances, "Ferierået 25/26")!;
+    const vy2526 = findAccount(balances, "Ferieåret 25/26")!;
     const bought = findAccount(balances, "Købte feriedage")!;
 
     // 2.08 earned, 10 selected.
@@ -317,7 +317,7 @@ describe("vacationLedger - borrowing (forskudsferie)", () => {
         advanceDays: 0,
       }),
     );
-    const vy2526 = findAccount(balances, "Ferierået 25/26")!;
+    const vy2526 = findAccount(balances, "Ferieåret 25/26")!;
     const bought = findAccount(balances, "Købte feriedage")!;
 
     // 2.08 earned, 3 selected. 2.08 used, 0.92 bought
@@ -333,7 +333,7 @@ describe("vacationLedger - holiday handling", () => {
       makeState({ selectedDates: ["2025-12-25"] }),
     );
     const selected = findAccount(balances, "Brugervalg")!;
-    const vy2526 = findAccount(balances, "Ferierået 25/26")!;
+    const vy2526 = findAccount(balances, "Ferieåret 25/26")!;
 
     // Holiday filtered out — no selection recorded
     expect(rec(selected)["2025-12"]).toBeCloseTo(0);
@@ -366,8 +366,8 @@ describe("vacationLedger - end-to-end scenarios", () => {
       "2026-09-01", // Tue — consumes from extra2627 first (still active)
     ];
     const balances = computeBalances(makeState({ selectedDates: selected }));
-    const vy2526 = findAccount(balances, "Ferierået 25/26")!;
-    const vy2627 = findAccount(balances, "Ferierået 26/27")!;
+    const vy2526 = findAccount(balances, "Ferieåret 25/26")!;
+    const vy2627 = findAccount(balances, "Ferieåret 26/27")!;
     const extra2627 = findAccount(balances, "Feriefridage 26/27")!;
 
     // vy2526: 2 days in Sep 2025 (2.08 − 2 = 0.08)
