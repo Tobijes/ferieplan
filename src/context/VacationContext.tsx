@@ -1,11 +1,12 @@
 import { createContext, useContext, useRef, useState, useEffect, type ReactNode } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toISODate, generateMonths } from '@/lib/dateUtils';
-import { computeAllStatuses } from '@/lib/vacationCalculations';
-import { eachDayOfInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { computeBalances } from '@/lib/vacationLedger';
+import { eachDayOfInterval, startOfMonth, endOfMonth, isWeekend, parseISO } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
 import { saveStateToCloud, loadStateFromCloud, getCloudGeneration } from '@/lib/cloudStorage';
-import type { Holiday, DayStatus, VacationState, SyncStatus } from '@/types';
+import { Month } from '@/types/month';
+import type { Holiday, DayStatus, VacationState, VacationBalances, SyncStatus } from '@/types';
 
 function getPreviousSeptember1st(): string {
   const now = new Date();
@@ -23,7 +24,6 @@ export const defaultState: VacationState = {
   holidays: [],
   advanceDays: 0,
   maxTransferDays: 5,
-  earnFromSameMonth: true,
 };
 
 type SyncConflict = { type: 'upload' } | null;
@@ -33,11 +33,12 @@ interface VacationContextType {
   setState: (value: VacationState | ((prev: VacationState) => VacationState)) => void;
   toggleDate: (dateStr: string) => void;
   toggleHoliday: (dateStr: string) => void;
-  initDefaults: (holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number, earnFromSameMonth: boolean) => void;
+  initDefaults: (holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number) => void;
   addHoliday: (date: string, name: string) => void;
   resetState: () => void;
   holidayNames: Record<string, string>;
   dayStatuses: Record<string, DayStatus>;
+  vacationBalances: VacationBalances;
   visibleYears: number[];
   months: Date[];
   setHighlightedDate: (date: string | null) => void;
@@ -281,14 +282,14 @@ export function VacationProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const initDefaults = (holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number, earnFromSameMonth: boolean) => {
+  const initDefaults = (holidays: Holiday[], extraMonth: number, extraCount: number, advanceDays: number, maxTransferDays: number) => {
     setState((prev) => {
       if (prev.holidays.length === 0) {
         const enabled: Record<string, boolean> = {};
         for (const h of holidays) {
           enabled[h.date] = h.enabled;
         }
-        return { ...prev, holidays, enabledHolidays: enabled, extraDaysMonth: extraMonth, extraDaysCount: extraCount, advanceDays, maxTransferDays, earnFromSameMonth };
+        return { ...prev, holidays, enabledHolidays: enabled, extraDaysMonth: extraMonth, extraDaysCount: extraCount, advanceDays, maxTransferDays };
       }
 
       const existingDates = new Set(prev.holidays.map(h => h.date));
@@ -321,13 +322,15 @@ export function VacationProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const currentYear = new Date().getFullYear();
-  const holidayYears = new Set(state.holidays.map(h => parseInt(h.date.slice(0, 4), 10)));
-  holidayYears.add(currentYear);
-  const visibleYears = [...holidayYears].sort((a, b) => a - b);
+  const vacationBalances = computeBalances(state);
 
-  const calendarStartDate = getPreviousSeptember1st();
+  const startYear = vacationBalances.startMonth.year;
+  const endYear = vacationBalances.endMonth.year;
+  const visibleYears: number[] = [];
+  for (let y = startYear; y <= endYear; y++) visibleYears.push(y);
+
   const allVisibleMonths = generateMonths(visibleYears);
+  const calendarStartDate = vacationBalances.startMonth.key + '-01';
   const months = allVisibleMonths.filter(m => toISODate(m) >= calendarStartDate);
 
   const allDates: string[] = [];
@@ -337,22 +340,54 @@ export function VacationProvider({ children }: { children: ReactNode }) {
       allDates.push(toISODate(d));
     }
   }
-  const dayStatuses = computeAllStatuses(
-    allDates,
-    state.selectedDates,
-    state.enabledHolidays,
-    state.startDate,
-    state.initialVacationDays,
-    state.extraDaysMonth,
-    state.extraDaysCount,
-    state.advanceDays,
-    state.maxTransferDays,
-    state.earnFromSameMonth
-  );
+  const dayStatuses: Record<string, DayStatus> = {};
+  const selectedSet = new Set(state.selectedDates.filter(d => !state.enabledHolidays[d]));
+
+  // Non-selected dates
+  for (const dateStr of allDates) {
+    if (dateStr < state.startDate) {
+      dayStatuses[dateStr] = 'before-start';
+    } else if (state.enabledHolidays[dateStr]) {
+      dayStatuses[dateStr] = 'holiday';
+    } else if (!selectedSet.has(dateStr)) {
+      dayStatuses[dateStr] = isWeekend(parseISO(dateStr)) ? 'weekend' : 'normal';
+    }
+  }
+
+  // Selected dates: per-month split into ok / warning / overdrawn
+  // Last `bought` days → red; previous |combinedBalance| days (when negative) → yellow; rest → green
+  const selectedByMonth: Record<string, string[]> = {};
+  for (const d of selectedSet) {
+    const key = d.slice(0, 7);
+    (selectedByMonth[key] ??= []).push(d);
+  }
+
+  for (const monthKey of Object.keys(selectedByMonth)) {
+    const days = selectedByMonth[monthKey].sort();
+    const month = new Month(monthKey);
+    const vacationTotal = vacationBalances.vacationAccounts.reduce(
+      (sum, acc) => sum + (acc.has(month) ? acc.balanceAt(month) : 0), 0
+    );
+    const extraTotal = vacationBalances.extraDaysAccounts.reduce(
+      (sum, acc) => sum + (acc.has(month) ? acc.balanceAt(month) : 0), 0
+    );
+    const combinedBalance = vacationTotal + extraTotal;
+    const redCount = Math.max(0, Math.round(vacationBalances.boughtDaysAccount.balanceAt(month)));
+    const yellowCount = combinedBalance < 0 ? Math.max(0, Math.round(-combinedBalance)) : 0;
+
+    const n = days.length;
+    const redStart = n - redCount;
+    const yellowStart = redStart - yellowCount;
+    for (let i = 0; i < n; i++) {
+      if (i >= redStart) dayStatuses[days[i]] = 'selected-overdrawn';
+      else if (i >= yellowStart) dayStatuses[days[i]] = 'selected-warning';
+      else dayStatuses[days[i]] = 'selected-ok';
+    }
+  }
 
   const value = {
     state, setState, toggleDate, toggleHoliday, initDefaults, addHoliday, resetState,
-    holidayNames, dayStatuses, visibleYears, months, setHighlightedDate, calendarRef,
+    holidayNames, dayStatuses, vacationBalances, visibleYears, months, setHighlightedDate, calendarRef,
     syncStatus, syncConflict, resolveSyncConflict,
   };
 

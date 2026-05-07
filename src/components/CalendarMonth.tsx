@@ -6,40 +6,46 @@ import {
   getISOWeek,
   format,
   parseISO,
-} from 'date-fns';
-import { da } from 'date-fns/locale';
-import { Info } from 'lucide-react';
-import { DA_DAY_NAMES, toISODate } from '@/lib/dateUtils';
-import { getVacationYearBalances } from '@/lib/vacationCalculations';
-import { useVacation } from '@/context/VacationContext';
-import { CalendarDay } from './CalendarDay';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import type { DayStatus } from '@/types';
+} from "date-fns";
+import { da } from "date-fns/locale";
+import { Info } from "lucide-react";
+import { DA_DAY_NAMES, toISODate } from "@/lib/dateUtils";
+import { useVacation } from "@/context/VacationContext";
+import { Month } from "@/types/month";
+import { CalendarDay } from "./CalendarDay";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import type { DayStatus } from "@/types";
 
 interface CalendarMonthProps {
   month: Date;
   dayStatuses: Record<string, DayStatus>;
 }
 
-function formatVacationYearLabel(year: number): string {
-  const y1 = year % 100;
-  const y2 = (year + 1) % 100;
-  return `${y1.toString().padStart(2, '0')}/${y2.toString().padStart(2, '0')}`;
-}
 
 function balanceColor(balance: number, advanceDays: number): string {
-  if (balance > 0) return 'text-green-600';
-  if (balance === 0) return 'text-muted-foreground';
-  if (balance >= -advanceDays) return 'text-yellow-500';
-  return 'text-red-600';
+  if (balance > 0) return "text-green-600";
+  if (balance === 0) return "text-muted-foreground";
+  if (balance >= -advanceDays) return "text-yellow-500";
+  return "text-red-600";
 }
 
 interface BreakdownRow {
   label: string;
   balance: number;
+  forceRed?: boolean;
 }
 
-function BalanceDetailsPopover({ rows, advanceDays }: { rows: BreakdownRow[]; advanceDays: number }) {
+function BalanceDetailsPopover({
+  rows,
+  advanceDays,
+}: {
+  rows: BreakdownRow[];
+  advanceDays: number;
+}) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -52,11 +58,20 @@ function BalanceDetailsPopover({ rows, advanceDays }: { rows: BreakdownRow[]; ad
       </PopoverTrigger>
       <PopoverContent side="top" className="text-xs w-auto p-2">
         <div className="flex flex-col gap-1">
-          <div className="font-bold whitespace-nowrap">Feriedage fordelt på</div>
+          <div className="font-bold whitespace-nowrap">
+            Feriedage fordelt på
+          </div>
           {rows.map((row, i) => (
-            <div key={i} className="flex items-center justify-between gap-4 whitespace-nowrap">
+            <div
+              key={i}
+              className="flex items-center justify-between gap-4 whitespace-nowrap"
+            >
               <span className="text-muted-foreground">{row.label}:</span>
-              <span className={`${balanceColor(row.balance, advanceDays)} font-medium`}>{row.balance.toFixed(2)}</span>
+              <span
+                className={`${row.forceRed ? "text-red-600" : balanceColor(row.balance, advanceDays)} font-medium`}
+              >
+                {row.balance.toFixed(2)}
+              </span>
             </div>
           ))}
         </div>
@@ -66,10 +81,8 @@ function BalanceDetailsPopover({ rows, advanceDays }: { rows: BreakdownRow[]; ad
 }
 
 function MonthHeader({ month }: { month: Date }) {
-  const { state } = useVacation();
-  const monthNum = month.getMonth(); // 0-indexed
-  const year = month.getFullYear();
-  const monthName = format(month, 'MMMM', { locale: da });
+  const { state, vacationBalances } = useVacation();
+  const monthName = format(month, "MMMM", { locale: da });
 
   const employmentMonthStart = startOfMonth(parseISO(state.startDate));
   const monthEnd = endOfMonth(month);
@@ -83,45 +96,57 @@ function MonthHeader({ month }: { month: Date }) {
     );
   }
 
-  // Calculate balances at end of month (earnedInVacationYear now credits days from start of month)
-  const endOfMonthDate = toISODate(monthEnd);
-  const { vacationYears, extraPeriods } = getVacationYearBalances(
-    state.startDate, state.initialVacationDays, state.extraDaysMonth,
-    state.extraDaysCount, state.selectedDates, state.enabledHolidays,
-    endOfMonthDate, state.maxTransferDays, state.earnFromSameMonth
+  const calMonth = new Month(month.getFullYear(), month.getMonth() + 1);
+
+  const activeVacationAccounts = vacationBalances.vacationAccounts.filter(
+    (acc) => acc.has(calMonth),
+  );
+  const activeExtraAccounts = vacationBalances.extraDaysAccounts.filter(
+    (acc) => acc.has(calMonth),
   );
 
-  // Jan-Aug (0-7): Only the previous vacation year is active
-  // Sep-Dec (8-11): Both the previous and the current vacation year are active
-  const activeVacationYearNumbers = monthNum >= 8 ? [year - 1, year] : [year - 1];
-  const activeVacationYears = activeVacationYearNumbers
-    .map(y => vacationYears.find(b => b.year === y && !b.expired))
-    .filter(b => b !== undefined);
-
-  // Find active extra periods covering this month (not yet expired)
-  const activeExtraPeriods = extraPeriods.filter(
-    ep => endOfMonthDate >= ep.startDate && endOfMonthDate < ep.expiryDate && !ep.expired
-  );
+  const boughtDays = vacationBalances.boughtDaysAccount.balanceAt(calMonth);
 
   const breakdownRows: BreakdownRow[] = [];
-  for (const balance of activeVacationYears) {
-    breakdownRows.push({ label: `Ferieåret ${formatVacationYearLabel(balance.year)}`, balance: balance.balance });
+  for (const acc of activeVacationAccounts) {
+    breakdownRows.push({ label: acc.name, balance: acc.balanceAt(calMonth) });
   }
-  const extraBalance = activeExtraPeriods.reduce((sum, ep) => sum + ep.balance, 0);
-  breakdownRows.push({ label: 'Feriefridage', balance: extraBalance });
+  const extraBalance = activeExtraAccounts.reduce(
+    (sum, acc) => sum + acc.balanceAt(calMonth),
+    0,
+  );
+  if (vacationBalances.extraDaysAccounts.length > 0) {
+    breakdownRows.push({ label: "Feriefridage", balance: extraBalance });
+  }
 
   const totalBalance = breakdownRows.reduce((sum, r) => sum + r.balance, 0);
+
+  if (boughtDays > 0) {
+    breakdownRows.push({ label: vacationBalances.boughtDaysAccount.name, balance: -boughtDays, forceRed: true });
+  }
 
   return (
     <div className="relative flex flex-col items-center justify-center mb-2">
       <h3 className="text-sm font-semibold capitalize">{monthName}</h3>
       <div className="flex items-center gap-1 mt-0.5 text-xs whitespace-nowrap">
-        <span className="text-muted-foreground">Feriedage:</span>{' '}
-        <span className={`${balanceColor(totalBalance, state.advanceDays)} font-medium`}>{totalBalance.toFixed(2)}</span>
+        <span className="text-muted-foreground">Feriedage:</span>{" "}
+        <span
+          className={`${balanceColor(totalBalance, state.advanceDays)} font-medium`}
+        >
+          {totalBalance.toFixed(2)}
+        </span>
+        {boughtDays > 0 && (
+          <span className="text-red-600 font-medium">
+            {" "}( -{boughtDays.toFixed(2)} )
+          </span>
+        )}
       </div>
       {breakdownRows.length > 0 && (
         <div className="absolute right-1 top-1/2 -translate-y-1/2">
-          <BalanceDetailsPopover rows={breakdownRows} advanceDays={state.advanceDays} />
+          <BalanceDetailsPopover
+            rows={breakdownRows}
+            advanceDays={state.advanceDays}
+          />
         </div>
       )}
     </div>
@@ -175,7 +200,9 @@ export function CalendarMonth({ month, dayStatuses }: CalendarMonthProps) {
               <div className="grid grid-cols-7 gap-x-3 flex-1">
                 {week.map((day, dayIndex) => {
                   if (!day) {
-                    return <div key={`empty-${dayIndex}`} className="w-8 h-8" />;
+                    return (
+                      <div key={`empty-${dayIndex}`} className="w-8 h-8" />
+                    );
                   }
                   const dateStr = toISODate(day);
                   return (
@@ -183,7 +210,7 @@ export function CalendarMonth({ month, dayStatuses }: CalendarMonthProps) {
                       key={dateStr}
                       dateStr={dateStr}
                       dayOfMonth={day.getDate()}
-                      status={dayStatuses[dateStr] ?? 'normal'}
+                      status={dayStatuses[dateStr] ?? "normal"}
                     />
                   );
                 })}

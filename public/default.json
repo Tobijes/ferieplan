@@ -1,11 +1,16 @@
 {
+  "startDate": "2025-09-01",
+  "initialVacationDays": 0,
   "advanceDays": 0,
   "maxTransferDays": 5,
   "earnFromSameMonth": true,
+  "extraDaysMonth": 5,
+  "extraDaysCount": 5,
   "extraHoliday": {
     "defaultMonth": 5,
     "defaultCount": 5
   },
+  "selectedDates": [],
   "holidays": [
     { "date": "2025-01-01", "name": "Nytårsdag", "enabled": true },
     { "date": "2025-04-17", "name": "Skærtorsdag", "enabled": true },
@@ -51,5 +56,6 @@
     { "date": "2027-12-25", "name": "1. juledag", "enabled": true },
     { "date": "2027-12-26", "name": "2. juledag", "enabled": true },
     { "date": "2027-12-31", "name": "Nytårsaftensdag", "enabled": false }
-  ]
+  ],
+  "enabledHolidays": {}
 }
